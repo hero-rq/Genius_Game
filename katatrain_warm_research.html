@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KataTrain Warm Research</title>
+  <style>
+    :root{
+      --bg:    #edf2f6;
+      --panel: rgba(255,255,255,0.94);
+      --text:  #17212b;
+      --muted: rgba(23,33,43,0.72);
+      --stroke:#c7d1db;
+
+      --board:#f4ecd9;
+      --grid: #3f4a53;
+      --grid-soft: rgba(63,74,83,0.20);
+      --hoshi:#26323b;
+      --ko:   #0d86ff;
+
+      --shadow: 0 24px 72px rgba(20,35,52,0.16);
+      --board-edge: rgba(23,33,43,0.22);
+      --board-glow: rgba(255,255,255,0.55);
+      --btn-bg: rgba(255,255,255,0.98);
+      --accent: #0d86ff;
+      --illegal: #d54242;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.95), rgba(255,255,255,0) 40%),
+        linear-gradient(180deg, #edf2f6 0%, #e1e8ef 100%);
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .wrap{
+      width: min(99vw, 1260px);
+      height: min(98vh, 1260px);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:8px;
+    }
+
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      background:var(--panel);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+    }
+
+    .left, .right{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      padding:7px 11px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.98);
+      color:var(--text);
+      font-size:12px;
+      white-space:nowrap;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
+    }
+    .pill.muted{ color:var(--muted); }
+    .pill.alert{
+      background: rgba(213,66,66,0.08);
+      border-color: rgba(213,66,66,0.26);
+      color: #8d1d1d;
+    }
+
+    select, input[type="color"], button, .file-label{
+      border:1px solid var(--stroke);
+      background:var(--btn-bg);
+      color:var(--text);
+      border-radius:12px;
+      padding:7px 11px;
+      font-size:12px;
+      outline:none;
+      font-weight:600;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+    }
+
+    .file-label{
+      display:inline-flex;
+      align-items:center;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    button{
+      cursor:pointer;
+      transition: transform 0.05s ease, background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    button:hover, .file-label:hover, select:hover{
+      background:#fff;
+      border-color:#afbcc8;
+      box-shadow: 0 4px 12px rgba(32,47,64,0.08);
+    }
+    button:active{ transform:translateY(1px); }
+    button.secondary{ font-weight:500; }
+
+    #boardCustom, #gridCustom, #sgfInput{ display:none; }
+
+    .board-area{
+      flex:1;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    canvas{
+      width:auto;
+      height:auto;
+      max-width:100%;
+      max-height:100%;
+      aspect-ratio:1/1;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0)),
+        var(--board);
+      border-radius:22px;
+      border:1px solid var(--board-edge);
+      outline:none;
+      box-shadow:
+        inset 0 1px 0 var(--board-glow),
+        var(--shadow);
+    }
+
+    .hide-top .top{ display:none; }
+    .hide-top .wrap{ gap:0; }
+    .hide-top .board-area{ padding-top:0; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <div class="top" id="topBar">
+      <div class="left">
+        <span class="pill" id="movePill">Move: 0/0</span>
+        <span class="pill" id="turnPill">Next: Black</span>
+        <span class="pill muted" id="koPill">Ko: -</span>
+        <span class="pill muted" id="sgfPill">SGF: none</span>
+        <span class="pill muted" id="hintPill">Keys: ← undo • → redo • R reset • H hide bar</span>
+        <span class="pill" id="msgPill" style="display:none;"></span>
+      </div>
+
+      <div class="right">
+        <label class="file-label" for="sgfInput" title="Import SGF from KaTrain">Import SGF</label>
+        <input id="sgfInput" type="file" accept=".sgf,application/x-go-sgf,text/plain" />
+        <button id="reloadSgfBtn" class="secondary" title="Reload last imported SGF position">Reload SGF</button>
+
+        <select id="themeSelect" title="Theme preset">
+          <option value="solarized" selected>Warm Research</option>
+          <option value="paper">Paper Cream</option>
+          <option value="mist">Cool Mist</option>
+          <option value="jade">Jade Light</option>
+          <option value="sky">Sky Study</option>
+          <option value="custom">Custom</option>
+        </select>
+
+        <select id="boardSelect" title="Board color">
+          <option value="#f4ecd9" selected>Warm Research Board</option>
+          <option value="#f6eee2">Paper Cream</option>
+          <option value="#ebf1f6">Cool Mist</option>
+          <option value="#e7efe6">Jade Light</option>
+          <option value="#e8f0fa">Sky Blue</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <input id="boardCustom" type="color" value="#f4ecd9" title="Custom board color">
+
+        <select id="gridSelect" title="Grid color">
+          <option value="#3f4a53" selected>Dark Ink</option>
+          <option value="#443932">Warm Ink</option>
+          <option value="#43586c">Cool Slate</option>
+          <option value="#395345">Jade Ink</option>
+          <option value="#305470">Blue Ink</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <input id="gridCustom" type="color" value="#3f4a53" title="Custom grid color">
+
+        <button id="resetBtn" title="Reset (R)">Reset</button>
+      </div>
+    </div>
+
+    <div class="board-area">
+      <canvas id="board" width="1180" height="1180" tabindex="0" aria-label="Go board"></canvas>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const N = 19;
+  const EMPTY = 0, BLACK = 1, WHITE = 2;
+
+  const THEMES = {
+    solarized: {
+      bg: "#edf2f6",
+      panel: "rgba(255,255,255,0.94)",
+      text: "#17212b",
+      muted: "rgba(23,33,43,0.72)",
+      stroke: "#c7d1db",
+      board: "#f4ecd9",
+      grid: "#3f4a53",
+      hoshi: "#26323b",
+      ko: "#0d86ff",
+      boardEdge: "rgba(23,33,43,0.22)"
+    },
+    paper: {
+      bg: "#ece4dc",
+      panel: "rgba(255,255,255,0.95)",
+      text: "#221c18",
+      muted: "rgba(34,28,24,0.70)",
+      stroke: "#c9beb4",
+      board: "#f6eee2",
+      grid: "#443932",
+      hoshi: "#2f2621",
+      ko: "#1c7be0",
+      boardEdge: "rgba(34,28,24,0.22)"
+    },
+    mist: {
+      bg: "#e4ebf2",
+      panel: "rgba(255,255,255,0.95)",
+      text: "#1b2a37",
+      muted: "rgba(27,42,55,0.70)",
+      stroke: "#c4d0dc",
+      board: "#ebf1f6",
+      grid: "#43586c",
+      hoshi: "#2f4150",
+      ko: "#147fe5",
+      boardEdge: "rgba(27,42,55,0.22)"
+    },
+    jade: {
+      bg: "#e2ebe2",
+      panel: "rgba(255,255,255,0.95)",
+      text: "#1c2c23",
+      muted: "rgba(28,44,35,0.70)",
+      stroke: "#c5d2c8",
+      board: "#e7efe6",
+      grid: "#395345",
+      hoshi: "#24382d",
+      ko: "#1678d9",
+      boardEdge: "rgba(28,44,35,0.22)"
+    },
+    sky: {
+      bg: "#e2ebf6",
+      panel: "rgba(255,255,255,0.95)",
+      text: "#1a2a3b",
+      muted: "rgba(26,42,59,0.70)",
+      stroke: "#c2cfdd",
+      board: "#e8f0fa",
+      grid: "#305470",
+      hoshi: "#213d52",
+      ko: "#0b7ee6",
+      boardEdge: "rgba(26,42,59,0.22)"
+    }
+  };
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+
+  const wrap = document.getElementById('wrap');
+  const movePill = document.getElementById('movePill');
+  const turnPill = document.getElementById('turnPill');
+  const koPill = document.getElementById('koPill');
+  const msgPill = document.getElementById('msgPill');
+  const sgfPill = document.getElementById('sgfPill');
+
+  const themeSelect = document.getElementById('themeSelect');
+  const boardSelect = document.getElementById('boardSelect');
+  const boardCustom = document.getElementById('boardCustom');
+  const gridSelect  = document.getElementById('gridSelect');
+  const gridCustom  = document.getElementById('gridCustom');
+  const resetBtn    = document.getElementById('resetBtn');
+  const sgfInput    = document.getElementById('sgfInput');
+  const reloadSgfBtn = document.getElementById('reloadSgfBtn');
+
+  const STONE_RADIUS_FACTOR = 0.472;
+
+  const size = canvas.width;
+  const margin = 60;
+  const cell = (size - 2 * margin) / (N - 1);
+  const hoshi = [3, 9, 15];
+
+  let lastImportedSGF = null;
+  let lastImportedName = null;
+  let importedBaseHistory = null;
+
+  const other = p => (p === BLACK ? WHITE : BLACK);
+
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function setRootVar(name, val){
+    document.documentElement.style.setProperty(name, val);
+  }
+
+  function applyTheme(name){
+    const theme = THEMES[name];
+    if (!theme) return;
+
+    setRootVar('--bg', theme.bg);
+    setRootVar('--panel', theme.panel);
+    setRootVar('--text', theme.text);
+    setRootVar('--muted', theme.muted);
+    setRootVar('--stroke', theme.stroke);
+    setRootVar('--board', theme.board);
+    setRootVar('--grid', theme.grid);
+    setRootVar('--hoshi', theme.hoshi);
+    setRootVar('--ko', theme.ko);
+    setRootVar('--board-edge', theme.boardEdge);
+
+    boardSelect.value = theme.board;
+    gridSelect.value = theme.grid;
+    boardCustom.style.display = "none";
+    gridCustom.style.display = "none";
+    redraw();
+  }
+
+  function inBounds(r,c){ return r>=0 && r<N && c>=0 && c<N; }
+  function cloneBoard(board){ return board.map(row => row.slice()); }
+  function emptyBoard(){ return Array.from({length:N}, () => Array(N).fill(EMPTY)); }
+
+  function neighbors(r,c){
+    const out=[];
+    if (r>0) out.push([r-1,c]);
+    if (r<N-1) out.push([r+1,c]);
+    if (c>0) out.push([r,c-1]);
+    if (c<N-1) out.push([r,c+1]);
+    return out;
+  }
+
+  function boardsEqual(a, b){
+    if (!a || !b) return false;
+    for (let r=0;r<N;r++){
+      for (let c=0;c<N;c++){
+        if (a[r][c] !== b[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  let history = [{ board: emptyBoard(), nextPlayer: BLACK, ko: null }];
+  let idx = 0;
+  const current = () => history[idx];
+
+  function groupAndLiberties(board, sr, sc){
+    const color = board[sr][sc];
+    const stack = [[sr,sc]];
+    const seen = new Set([sr+","+sc]);
+    const group = [];
+    const libs = new Set();
+
+    while(stack.length){
+      const [r,c] = stack.pop();
+      group.push([r,c]);
+      for (const [rr,cc] of neighbors(r,c)){
+        const v = board[rr][cc];
+        if (v === EMPTY) libs.add(rr+","+cc);
+        else if (v === color){
+          const key = rr+","+cc;
+          if (!seen.has(key)){
+            seen.add(key);
+            stack.push([rr,cc]);
+          }
+        }
+      }
+    }
+    return { group, libs };
+  }
+
+  function applyMoveCore(board, nextPlayer, r, c){
+    const b = cloneBoard(board);
+    if (b[r][c] !== EMPTY) return null;
+
+    const player = nextPlayer;
+    const opp = other(player);
+    b[r][c] = player;
+
+    const captured = [];
+    for (const [rr,cc] of neighbors(r,c)){
+      if (b[rr][cc] === opp){
+        const { group, libs } = groupAndLiberties(b, rr, cc);
+        if (libs.size === 0){
+          for (const stone of group) captured.push(stone);
+        }
+      }
+    }
+
+    if (captured.length){
+      for (const [pr,pc] of captured) b[pr][pc] = EMPTY;
+    }
+
+    const { libs } = groupAndLiberties(b, r, c);
+    if (libs.size === 0) return null;
+
+    return { board: b, captured };
+  }
+
+  function applyMove(pos, r, c, prevBoard){
+    const core = applyMoveCore(pos.board, pos.nextPlayer, r, c);
+    if (!core) return null;
+
+    const newBoard = core.board;
+    const captured = core.captured;
+    if (prevBoard && boardsEqual(newBoard, prevBoard)) return null;
+
+    let newKo = null;
+    if (captured.length === 1){
+      const [capR, capC] = captured[0];
+      const sim = applyMoveCore(newBoard, other(pos.nextPlayer), capR, capC);
+      if (sim && boardsEqual(sim.board, pos.board)) newKo = [capR, capC];
+    }
+
+    return {
+      board: newBoard,
+      nextPlayer: other(pos.nextPlayer),
+      ko: newKo
+    };
+  }
+
+  function showMsg(text, kind = 'normal'){
+    msgPill.textContent = text;
+    msgPill.style.display = 'inline-block';
+    msgPill.className = kind === 'alert' ? 'pill alert' : 'pill';
+    clearTimeout(showMsg._timer);
+    showMsg._timer = setTimeout(() => {
+      msgPill.style.display = 'none';
+      msgPill.className = 'pill';
+    }, 1400);
+  }
+
+  function updateStatus(){
+    const pos = current();
+    movePill.textContent = `Move: ${idx}/${history.length-1}`;
+    turnPill.textContent = `Next: ${pos.nextPlayer===BLACK ? "Black" : "White"}`;
+    koPill.textContent = `Ko: ${pos.ko ? `(${pos.ko[0]+1}, ${pos.ko[1]+1})` : "-"}`;
+    sgfPill.textContent = `SGF: ${lastImportedName ? lastImportedName : 'none'}`;
+  }
+
+  function drawGrid(){
+    ctx.clearRect(0,0,size,size);
+
+    const grid = cssVar('--grid') || '#3f4a53';
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(margin - 12, margin - 12, (N-1)*cell + 24, (N-1)*cell + 24);
+    ctx.restore();
+
+    ctx.lineWidth = 2.1;
+    ctx.strokeStyle = grid;
+
+    for (let i=0;i<N;i++){
+      const x = margin + i*cell;
+      const y0 = margin, y1 = margin+(N-1)*cell;
+      ctx.beginPath();
+      ctx.moveTo(x,y0);
+      ctx.lineTo(x,y1);
+      ctx.stroke();
+    }
+
+    for (let i=0;i<N;i++){
+      const y = margin + i*cell;
+      const x0 = margin, x1 = margin+(N-1)*cell;
+      ctx.beginPath();
+      ctx.moveTo(x0,y);
+      ctx.lineTo(x1,y);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = cssVar('--hoshi') || '#26323b';
+    for (const r of hoshi){
+      for (const c of hoshi){
+        const x = margin+c*cell, y = margin+r*cell;
+        ctx.beginPath();
+        ctx.arc(x,y,6.1,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    ctx.strokeStyle = cssVar('--grid-soft') || 'rgba(63,74,83,0.2)';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(margin, margin, (N-1)*cell, (N-1)*cell);
+  }
+
+  function drawStone(x,y,isBlack){
+    const r = cell * STONE_RADIUS_FACTOR;
+
+    ctx.beginPath();
+    ctx.fillStyle = isBlack ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.16)';
+    ctx.arc(x+2.6,y+3.0,r,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.beginPath();
+    if (isBlack){
+      const grad = ctx.createRadialGradient(x - r*0.36, y - r*0.48, r*0.10, x, y, r);
+      grad.addColorStop(0, '#7c8790');
+      grad.addColorStop(0.25, '#2e3740');
+      grad.addColorStop(0.68, '#0e1419');
+      grad.addColorStop(1, '#020304');
+      ctx.fillStyle = grad;
+    } else {
+      const grad = ctx.createRadialGradient(x - r*0.38, y - r*0.46, r*0.08, x, y, r);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.36, '#ffffff');
+      grad.addColorStop(0.74, '#edf1f5');
+      grad.addColorStop(1, '#cfd8e0');
+      ctx.fillStyle = grad;
+    }
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.lineWidth = isBlack ? 1.2 : 1.8;
+    ctx.strokeStyle = isBlack ? 'rgba(255,255,255,0.10)' : 'rgba(40,50,60,0.40)';
+    ctx.stroke();
+
+    if (!isBlack){
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.60)';
+      ctx.ellipse(x - r*0.28, y - r*0.34, r*0.22, r*0.13, -0.55, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  function redraw(){
+    drawGrid();
+    const pos = current();
+
+    for (let r=0;r<N;r++){
+      for (let c=0;c<N;c++){
+        const v = pos.board[r][c];
+        if (v===EMPTY) continue;
+        const x = margin+c*cell, y = margin+r*cell;
+        drawStone(x,y, v===BLACK);
+      }
+    }
+
+    if (pos.ko){
+      const [r,c] = pos.ko;
+      const x = margin+c*cell, y = margin+r*cell;
+      ctx.beginPath();
+      ctx.lineWidth = 4.2;
+      ctx.strokeStyle = cssVar('--ko') || '#0d86ff';
+      ctx.arc(x,y, cell*0.16, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    updateStatus();
+  }
+
+  function nearestIntersection(px,py){
+    const gx = (px-margin)/cell;
+    const gy = (py-margin)/cell;
+    const c = Math.round(gx);
+    const r = Math.round(gy);
+    if (!inBounds(r,c)) return null;
+
+    const ix = margin+c*cell;
+    const iy = margin+r*cell;
+    const dist2 = (px-ix)*(px-ix) + (py-iy)*(py-iy);
+    const thresh2 = (cell*0.38)*(cell*0.38);
+    if (dist2<=thresh2) return [r,c];
+    return null;
+  }
+
+  function reset(){
+    if (importedBaseHistory){
+      history = importedBaseHistory.map(s => ({
+        board: cloneBoard(s.board),
+        nextPlayer: s.nextPlayer,
+        ko: s.ko ? [...s.ko] : null
+      }));
+      idx = history.length - 1;
+    } else {
+      history = [{ board: emptyBoard(), nextPlayer: BLACK, ko: null }];
+      idx = 0;
+    }
+    redraw();
+    canvas.focus();
+  }
+
+  function sgfCoordToRC(pair){
+    if (!pair || pair.length < 2) return null;
+    const c = pair.charCodeAt(0) - 97;
+    const r = pair.charCodeAt(1) - 97;
+    if (!inBounds(r,c)) return null;
+    return [r,c];
+  }
+
+  function parseSGF(text){
+    const cleaned = String(text || '');
+    const sizeMatch = cleaned.match(/SZ\[(\d+)\]/i);
+    const boardSize = sizeMatch ? parseInt(sizeMatch[1], 10) : 19;
+    if (boardSize !== 19) {
+      throw new Error(`This board supports 19×19 only. SGF size was ${boardSize}.`);
+    }
+
+    const initialBoard = emptyBoard();
+    const abRegex = /AB((?:\[[a-s]{2}\])+)/ig;
+    const awRegex = /AW((?:\[[a-s]{2}\])+)/ig;
+    const pointRegex = /\[([a-s]{2})\]/ig;
+
+    for (const rx of [abRegex, awRegex]){
+      let match;
+      while ((match = rx.exec(cleaned)) !== null){
+        const block = match[1];
+        let point;
+        while ((point = pointRegex.exec(block)) !== null){
+          const rc = sgfCoordToRC(point[1]);
+          if (!rc) continue;
+          const [r,c] = rc;
+          initialBoard[r][c] = rx === abRegex ? BLACK : WHITE;
+        }
+      }
+      pointRegex.lastIndex = 0;
+    }
+
+    const historyOut = [{ board: cloneBoard(initialBoard), nextPlayer: BLACK, ko: null }];
+    let pos = historyOut[0];
+
+    const moveRegex = /;\s*([BW])\[([^\]]*)\]/ig;
+    let move;
+    while ((move = moveRegex.exec(cleaned)) !== null){
+      const player = move[1].toUpperCase() === 'B' ? BLACK : WHITE;
+      const coord = move[2];
+
+      if (coord === '' || coord === 'tt') {
+        pos = { board: cloneBoard(pos.board), nextPlayer: other(player), ko: null };
+        historyOut.push(pos);
+        continue;
+      }
+
+      const rc = sgfCoordToRC(coord);
+      if (!rc) continue;
+      const [r,c] = rc;
+
+      const forcedPos = {
+        board: cloneBoard(pos.board),
+        nextPlayer: player,
+        ko: pos.ko ? [...pos.ko] : null
+      };
+      const prevBoard = historyOut.length >= 2 ? historyOut[historyOut.length - 2].board : null;
+      const next = applyMove(forcedPos, r, c, prevBoard);
+      if (!next) {
+        throw new Error(`Illegal or unsupported move found in SGF at ${move[1]}[${coord}].`);
+      }
+      pos = next;
+      historyOut.push(pos);
+    }
+
+    return historyOut;
+  }
+
+  function loadSGFText(text, fileName = 'imported.sgf'){
+    const parsed = parseSGF(text);
+    history = parsed.map(s => ({
+      board: cloneBoard(s.board),
+      nextPlayer: s.nextPlayer,
+      ko: s.ko ? [...s.ko] : null
+    }));
+    importedBaseHistory = history.map(s => ({
+      board: cloneBoard(s.board),
+      nextPlayer: s.nextPlayer,
+      ko: s.ko ? [...s.ko] : null
+    }));
+    idx = history.length - 1;
+    lastImportedSGF = text;
+    lastImportedName = fileName;
+    redraw();
+    canvas.focus();
+    showMsg(`Loaded SGF: ${fileName}`);
+  }
+
+  canvas.addEventListener('click', (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width/rect.width;
+    const scaleY = canvas.height/rect.height;
+    const x = (e.clientX-rect.left)*scaleX;
+    const y = (e.clientY-rect.top)*scaleY;
+
+    const rc = nearestIntersection(x,y);
+    if (!rc) return;
+
+    const [r,c] = rc;
+    const pos = current();
+    const prevBoard = (idx >= 1) ? history[idx-1].board : null;
+    const next = applyMove(pos,r,c,prevBoard);
+
+    if (!next){
+      showMsg('Illegal move (occupied / suicide / ko repetition).', 'alert');
+      return;
+    }
+
+    if (idx !== history.length-1) history = history.slice(0, idx+1);
+    history.push(next);
+    idx++;
+    redraw();
+    canvas.focus();
+  });
+
+  resetBtn.addEventListener('click', reset);
+
+  reloadSgfBtn.addEventListener('click', ()=>{
+    if (!lastImportedSGF) {
+      showMsg('No SGF imported yet.', 'alert');
+      return;
+    }
+    loadSGFText(lastImportedSGF, lastImportedName || 'imported.sgf');
+  });
+
+  sgfInput.addEventListener('change', async (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      loadSGFText(text, file.name);
+    } catch (err) {
+      showMsg(err?.message || 'Failed to import SGF.', 'alert');
+    } finally {
+      sgfInput.value = '';
+    }
+  });
+
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault();
+
+    if (e.key === 'ArrowLeft'){
+      if (idx>0){ idx--; redraw(); }
+    } else if (e.key === 'ArrowRight'){
+      if (idx+1<history.length){ idx++; redraw(); }
+    } else if (e.key === 'r' || e.key === 'R'){
+      reset();
+    } else if (e.key === 'h' || e.key === 'H'){
+      wrap.classList.toggle('hide-top');
+      canvas.focus();
+    }
+  }, { passive:false });
+
+  themeSelect.addEventListener('change', ()=>{
+    if (themeSelect.value === 'custom') {
+      boardSelect.value = 'custom';
+      gridSelect.value = 'custom';
+      boardCustom.style.display = 'inline-block';
+      gridCustom.style.display = 'inline-block';
+      return;
+    }
+    applyTheme(themeSelect.value);
+  });
+
+  boardSelect.addEventListener('change', ()=>{
+    if (boardSelect.value === 'custom'){
+      boardCustom.style.display = 'inline-block';
+      boardCustom.value = cssVar('--board') || '#f4ecd9';
+    } else {
+      boardCustom.style.display = 'none';
+      setRootVar('--board', boardSelect.value);
+    }
+    redraw();
+  });
+
+  boardCustom.addEventListener('input', ()=>{
+    setRootVar('--board', boardCustom.value);
+    redraw();
+  });
+
+  gridSelect.addEventListener('change', ()=>{
+    if (gridSelect.value === 'custom'){
+      gridCustom.style.display = 'inline-block';
+      gridCustom.value = cssVar('--grid') || '#3f4a53';
+    } else {
+      gridCustom.style.display = 'none';
+      setRootVar('--grid', gridSelect.value);
+    }
+    redraw();
+  });
+
+  gridCustom.addEventListener('input', ()=>{
+    setRootVar('--grid', gridCustom.value);
+    redraw();
+  });
+
+  applyTheme('solarized');
+  canvas.focus();
+})();
+</script>
+</body>
+</html>
