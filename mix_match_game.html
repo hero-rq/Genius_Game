@@ -1,987 +1,494 @@
 <!doctype html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="utf-8" />
-
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
   <title>Mix & Match — Infinite Loop (Odd/Even Overlaps)</title>
-
   <style>
-
     :root{
-
       --bg:#0b0f14; --text:#e7eef7; --muted:#9fb2c7;
-
       --yellow:#ffd84a; --danger:#ff5a5f; --ok:#35d07f; --border:rgba(255,255,255,.10);
-
       --shadow:0 8px 30px rgba(0,0,0,.45);
-
     }
-
     *{box-sizing:border-box}
-
     body{
-
       margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-
       background: radial-gradient(1200px 800px at 30% 10%, rgba(255,216,74,.08), transparent 55%),
-
                   radial-gradient(1000px 700px at 70% 30%, rgba(53,208,127,.07), transparent 60%),
-
                   var(--bg);
-
       color:var(--text);
-
     }
-
     .wrap{max-width:1050px;margin:22px auto;padding:0 16px 24px}
-
     .top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
-
     h1{margin:0;font-size:22px;letter-spacing:.2px}
-
     .subtitle{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35;max-width:760px}
-
     .stats{display:grid;gap:10px;min-width:260px}
-
     .statCard{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
-
     .statRow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:4px 0}
-
     .label{color:var(--muted);font-size:12px}
-
     .value{font-weight:800;font-size:16px}
-
     .value.small{font-weight:650;font-size:13px;color:var(--muted)}
 
-​
-
     .grid{display:grid;grid-template-columns:1.35fr .65fr;gap:14px}
-
     @media (max-width:920px){.grid{grid-template-columns:1fr}.stats{min-width:unset}}
-
     .panel{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
-
     .stageHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-
     .pill{font-size:12px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:rgba(0,0,0,.15)}
-
     .pill strong{color:var(--text)}
-
     .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-
     button{
-
       border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);
-
       padding:10px 12px;border-radius:14px;cursor:pointer;font-weight:800;letter-spacing:.2px;
-
       transition:transform .06s ease, background .12s ease, border-color .12s ease; user-select:none;
-
     }
-
     button:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18)}
-
     button:active{transform:translateY(1px)}
-
     button.primary{border-color:rgba(255,216,74,.45);background:rgba(255,216,74,.12)}
-
     button.primary:hover{background:rgba(255,216,74,.18)}
-
     button.danger{border-color:rgba(255,90,95,.45);background:rgba(255,90,95,.12)}
-
     button.danger:hover{background:rgba(255,90,95,.18)}
-
     button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-​
-
     .canvasCard{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(0,0,0,.18)}
-
     .canvasTitle{
-
       padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;
-
       align-items:center;gap:10px;font-size:13px;color:var(--muted)
-
     }
-
     .canvasTitle b{color:var(--text)}
-
     canvas{display:block;width:100%;height:180px}
 
-​
-
     .thumbs{margin-top:12px;display:grid;grid-template-columns:repeat(6, 1fr);gap:10px}
-
     @media (max-width:900px){.thumbs{grid-template-columns:repeat(3,1fr)}}
-
     .thumb{border:1px solid var(--border);border-radius:14px;background:rgba(0,0,0,.16);overflow:hidden}
-
     .thumbHead{
-
       padding:7px 9px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;
-
       border-bottom:1px solid var(--border)
-
     }
-
     .thumbHead .k{color:var(--text);font-weight:900}
-
     .thumb canvas{height:86px}
 
-​
-
     .rightCol{display:grid;gap:14px;align-content:start}
-
     .inputRow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-top:10px}
-
     input[type="number"]{
-
       width:100%;padding:12px;border-radius:14px;border:1px solid var(--border);
-
       background:rgba(0,0,0,.22);color:var(--text);outline:none;font-size:16px;font-weight:900
-
     }
-
     .msg{
-
       margin-top:10px;min-height:44px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);
-
       background:rgba(0,0,0,.18);color:var(--muted);line-height:1.35;font-size:13px;white-space:pre-line
-
     }
-
     .msg.ok{border-color:rgba(53,208,127,.35);color:rgba(231,238,247,.92)}
-
     .msg.bad{border-color:rgba(255,90,95,.35);color:rgba(231,238,247,.92)}
-
     .hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.35}
-
     .kbd{
-
       display:inline-block;padding:2px 6px;border-radius:8px;border:1px solid var(--border);
-
       background:rgba(255,255,255,.05);color:var(--text);font-size:12px;font-weight:900;vertical-align:baseline
-
     }
-
   </style>
-
 </head>
-
 <body>
-
 <div class="wrap">
-
   <div class="top">
-
     <div>
-
       <h1>Mix & Match — Infinite Loop ✨</h1>
-
       <div class="subtitle">
-
         Reveal sequence runs forever: <b>#1 → #2 → … → #6 → #1 → …</b><br/>
-
         Overlap <b>#1+#3+#5</b> to get <b>A</b> and overlap <b>#2+#4+#6</b> to get <b>B</b>. Then shout <b>A + B</b>.
-
         Wrong answer = <b>10s lockout</b>, but the reveals keep looping.
-
       </div>
-
     </div>
-
     <div class="stats">
-
       <div class="statCard">
-
         <div class="statRow"><div class="label">Round</div><div class="value" id="roundNo">1</div></div>
-
         <div class="statRow"><div class="label">Score</div><div class="value" id="score">0</div></div>
-
         <div class="statRow"><div class="label">Current reveal</div><div class="value small"><span id="revealIdx">0</span>/6</div></div>
-
       </div>
-
       <div class="statCard">
-
         <div class="statRow"><div class="label">Status</div><div class="value small" id="status">Waiting</div></div>
-
         <div class="statRow"><div class="label">Lockout</div><div class="value small" id="lockout">—</div></div>
-
       </div>
-
     </div>
-
   </div>
 
-​
-
   <div class="grid">
-
     <div class="panel">
-
       <div class="stageHeader">
-
         <div class="pill">Odd overlays → <strong>A</strong> | Even overlays → <strong>B</strong> | Sequence loops forever</div>
-
         <div class="btns">
-
           <button id="startBtn" class="primary">Start round</button>
-
           <button id="newBtn">New round</button>
-
           <button id="revealBtn" class="danger">Reveal answer</button>
-
         </div>
-
       </div>
-
-​
 
       <div class="canvasCard">
-
         <div class="canvasTitle">
-
           <span>Current image: <b id="currentLabel">—</b></span>
-
           <span class="pill" id="currentPill">Waiting</span>
-
         </div>
-
         <canvas id="currentCanvas" width="980" height="180"></canvas>
-
       </div>
-
-​
 
       <div class="thumbs" id="thumbs"></div>
 
-​
-
       <div class="hint">
-
         Use thumbnails to mentally overlap. Press <span class="kbd">Enter</span> to shout anytime.
-
       </div>
-
     </div>
-
-​
 
     <div class="rightCol">
-
       <div class="panel">
-
         <div class="pill">Your answer</div>
-
         <div class="inputRow">
-
           <input id="sumInput" type="number" placeholder="Enter sum (A + B)" />
-
           <button id="shoutBtn" class="primary">Shout!</button>
-
         </div>
-
         <div class="msg" id="msg">Press “Start round”. The reveal loop never stops until you solve it.</div>
-
       </div>
-
-​
 
       <div class="panel">
-
         <div class="pill">Rule reminder</div>
-
         <div class="hint">
-
           • A = overlap of <b>#1, #3, #5</b><br/>
-
           • B = overlap of <b>#2, #4, #6</b><br/>
-
           • Wrong answer → <b>10s</b> lockout, but animation continues
-
         </div>
-
       </div>
-
     </div>
-
   </div>
-
 </div>
 
-​
-
 <script>
-
 /* -------- 7-segment digits -------- */
-
 const DIGIT_SEGMENTS = {
-
   0: ["a","b","c","d","e","f"],
-
   1: ["b","c"],
-
   2: ["a","b","g","e","d"],
-
   3: ["a","b","c","d","g"],
-
   4: ["f","g","b","c"],
-
   5: ["a","f","g","c","d"],
-
   6: ["a","f","e","d","c","g"],
-
   7: ["a","b","c"],
-
   8: ["a","b","c","d","e","f","g"],
-
   9: ["a","b","c","d","f","g"]
-
 };
-
-​
 
 function segmentLines(x, y, w, h) {
-
   const pad = 0.10;
-
   const x0 = x + w*pad, x1 = x + w*(1-pad);
-
   const y0 = y + h*pad, y1 = y + h*(1-pad);
-
   const ym = (y0+y1)/2;
-
   return {
-
     a: [[x0, y0], [x1, y0]],
-
     b: [[x1, y0], [x1, ym]],
-
     c: [[x1, ym], [x1, y1]],
-
     d: [[x0, y1], [x1, y1]],
-
     e: [[x0, ym], [x0, y1]],
-
     f: [[x0, y0], [x0, ym]],
-
     g: [[x0, ym], [x1, ym]],
-
   };
-
 }
-
-​
 
 function clearCanvas(ctx) {
-
   ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-
   const g = ctx.createRadialGradient(ctx.canvas.width*0.5, ctx.canvas.height*0.4, 10,
-
                                     ctx.canvas.width*0.5, ctx.canvas.height*0.5, ctx.canvas.width*0.8);
-
   g.addColorStop(0, "rgba(255,216,74,0.06)");
-
   g.addColorStop(1, "rgba(0,0,0,0)");
-
   ctx.fillStyle = g;
-
   ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
-
 }
-
-​
 
 function drawSegments(ctx, segmentsForTwoDigits, opts={}) {
-
   const { color="rgba(255,216,74,0.95)", lineWidth=12 } = opts;
 
-​
-
   const W = ctx.canvas.width, H = ctx.canvas.height;
-
   const digitW = W * 0.28;
-
   const digitH = H * 0.80;
-
   const gap = W * 0.06;
 
-​
-
   const leftX  = (W - (digitW*2 + gap)) / 2;
-
   const topY   = (H - digitH) / 2;
 
-​
-
   const boxes = [
-
     { x: leftX, y: topY, w: digitW, h: digitH },
-
     { x: leftX + digitW + gap, y: topY, w: digitW, h: digitH }
-
   ];
 
-​
-
   ctx.lineCap = "round";
-
   ctx.lineJoin = "round";
-
   ctx.strokeStyle = color;
-
   ctx.lineWidth = lineWidth;
 
-​
-
   ctx.save();
-
   ctx.globalAlpha = 0.08;
-
   ctx.strokeStyle = "white";
-
   ctx.lineWidth = 2;
-
   for (const b of boxes) ctx.strokeRect(b.x, b.y, b.w, b.h);
-
   ctx.restore();
 
-​
-
   for (let i=0;i<2;i++) {
-
     const segs = segmentsForTwoDigits[i] || [];
-
     const lines = segmentLines(boxes[i].x, boxes[i].y, boxes[i].w, boxes[i].h);
-
     for (const s of segs) {
-
       const [[x1,y1],[x2,y2]] = lines[s];
-
       ctx.beginPath();
-
       ctx.moveTo(x1,y1);
-
       ctx.lineTo(x2,y2);
-
       ctx.stroke();
-
     }
-
   }
-
 }
-
-​
 
 /* -------- Game logic -------- */
-
 const REVEAL_INTERVAL_MS = 3000;
-
 const LOCKOUT_MS = 10000;
-
 const LAYERS = 3; // odd uses 3 layers, even uses 3 layers
 
-​
-
 const els = {
-
   roundNo: document.getElementById("roundNo"),
-
   score: document.getElementById("score"),
-
   revealIdx: document.getElementById("revealIdx"),
-
   status: document.getElementById("status"),
-
   lockout: document.getElementById("lockout"),
-
   msg: document.getElementById("msg"),
-
   sumInput: document.getElementById("sumInput"),
-
   startBtn: document.getElementById("startBtn"),
-
   newBtn: document.getElementById("newBtn"),
-
   revealBtn: document.getElementById("revealBtn"),
-
   shoutBtn: document.getElementById("shoutBtn"),
-
   thumbs: document.getElementById("thumbs"),
-
   currentLabel: document.getElementById("currentLabel"),
-
   currentPill: document.getElementById("currentPill"),
-
   currentCanvas: document.getElementById("currentCanvas"),
-
 };
-
 const ctxCur = els.currentCanvas.getContext("2d");
 
-​
-
 let round = 1, score = 0;
-
 let targetA = 0, targetB = 0, targetSum = 0;
 
-​
-
 let revealTimer = null;
-
 let revealIndex = 0; // 1..6 (we will loop)
-
 let lockedUntil = 0;
 
-​
-
 // layersA[0..2] and layersB[0..2], each layer is [ [segsTens], [segsOnes] ]
-
 let layersA = [];
-
 let layersB = [];
-
 let thumbsLayers = Array(7).fill(null); // store the 6 reveal images
 
-​
-
 function now(){ return Date.now(); }
-
 function randInt(min, max){ return Math.floor(Math.random()*(max-min+1)) + min; }
-
 function twoDigits(n){ n = Math.max(0, Math.min(99, n|0)); return [Math.floor(n/10), n%10]; }
-
 function uniq(arr){ return Array.from(new Set(arr)); }
 
-​
-
 function updateStats(){
-
   els.roundNo.textContent = String(round);
-
   els.score.textContent = String(score);
-
   els.revealIdx.textContent = String(revealIndex);
 
-​
-
   const t = now();
-
   if (t < lockedUntil) {
-
     els.lockout.textContent = `${Math.ceil((lockedUntil - t)/1000)}s`;
-
   } else {
-
     els.lockout.textContent = "—";
-
   }
-
 }
-
-​
 
 function setStatus(t){ els.status.textContent = t; }
-
 function setMsg(text, kind=""){
-
   els.msg.className = "msg" + (kind ? (" " + kind) : "");
-
   els.msg.textContent = text;
-
 }
-
-​
 
 function stopTimer(){
-
   if (revealTimer) {
-
     clearInterval(revealTimer);
-
     revealTimer = null;
-
   }
-
 }
-
-​
 
 function buildThumbsUI(){
-
   els.thumbs.innerHTML = "";
-
   for (let i=1;i<=6;i++){
-
     const div = document.createElement("div");
-
     div.className = "thumb";
-
     const head = document.createElement("div");
-
     head.className = "thumbHead";
-
     head.innerHTML = `<span class="k">#${i}</span><span>${i%2===1 ? "odd→A" : "even→B"}</span>`;
-
     const c = document.createElement("canvas");
-
     c.width = 260; c.height = 86;
-
     c.dataset.idx = String(i);
-
     div.appendChild(head);
-
     div.appendChild(c);
-
     els.thumbs.appendChild(div);
-
   }
-
 }
-
-​
 
 function drawThumb(i, layer){
-
   const canvas = els.thumbs.querySelector(`canvas[data-idx="${i}"]`);
-
   if (!canvas) return;
-
   const ctx = canvas.getContext("2d");
-
   clearCanvas(ctx);
-
   drawSegments(ctx, layer, { lineWidth: 8 });
-
 }
-
-​
 
 function renderCurrent(layer, labelText){
-
   clearCanvas(ctxCur);
-
   if (layer) drawSegments(ctxCur, layer, { lineWidth: 12 });
-
   els.currentLabel.textContent = labelText;
-
   els.currentPill.textContent = `#${revealIndex || 0}`;
-
 }
-
-​
 
 function shuffle(a){
-
   for (let i=a.length-1;i>0;i--){
-
     const j = Math.floor(Math.random()*(i+1));
-
     [a[i],a[j]] = [a[j],a[i]];
-
   }
-
   return a;
-
 }
-
-​
 
 // Split all true digit segments into 3 non-empty layers so overlay reconstructs exact digit
-
 function splitInto3Layers(segs){
-
   const parts = Array.from({length: LAYERS}, () => []);
-
   const s = shuffle(segs.slice());
-
   for (let i=0;i<s.length;i++) parts[i % LAYERS].push(s[i]);
 
-​
-
   // ensure no empty layer: if any empty, steal from the largest
-
   for (let k=0;k<parts.length;k++){
-
     if (parts[k].length === 0){
-
       let biggest = 0;
-
       for (let j=1;j<parts.length;j++) if (parts[j].length > parts[biggest].length) biggest = j;
-
       parts[k].push(parts[biggest].pop());
-
     }
-
   }
-
   return parts;
-
 }
-
-​
 
 function makeLayersForNumber(n){
-
   const [tens, ones] = twoDigits(n);
-
   const tensParts = splitInto3Layers(DIGIT_SEGMENTS[tens]);
-
   const onesParts = splitInto3Layers(DIGIT_SEGMENTS[ones]);
-
   const layers = [];
-
   for (let i=0;i<LAYERS;i++){
-
     layers.push([tensParts[i], onesParts[i]]);
-
   }
-
   return layers;
-
 }
-
-​
 
 function startRound(){
-
   stopTimer();
-
   revealIndex = 0;
-
   lockedUntil = 0;
 
-​
-
   targetA = randInt(0, 99);
-
   targetB = randInt(0, 99);
-
   targetSum = targetA + targetB;
 
-​
-
   layersA = makeLayersForNumber(targetA);
-
   layersB = makeLayersForNumber(targetB);
 
-​
-
   thumbsLayers = Array(7).fill(null);
-
   buildThumbsUI();
-
-​
 
   clearCanvas(ctxCur);
-
   renderCurrent(null, "Starting…");
-
   els.sumInput.value = "";
-
   els.sumInput.focus();
 
-​
-
   setStatus("Looping reveals…");
-
   setMsg("The 6-image sequence will loop forever until you solve it. 👀\nA = #1+#3+#5, B = #2+#4+#6");
-
   updateStats();
-
-​
 
   // Start infinite loop: every 3 seconds advance revealIndex 1..6 and wrap.
-
   revealTimer = setInterval(() => {
-
     nextReveal();
-
   }, REVEAL_INTERVAL_MS);
 
-​
-
   // Optional: reveal immediately 
-
   // nextReveal();
-
 }
-
-​
 
 function nextReveal(){
-
   // advance 1..6 then wrap
-
   revealIndex = (revealIndex % 6) + 1;
 
-​
-
   const isOdd = (revealIndex % 2 === 1);
-
   const layer = isOdd ? layersA[(revealIndex-1)/2] : layersB[(revealIndex-2)/2];
 
-​
-
   thumbsLayers[revealIndex] = layer;
-
   drawThumb(revealIndex, layer);
 
-​
-
   const who = isOdd ? "odd → A" : "even → B";
-
   renderCurrent(layer, `Reveal #${revealIndex} (${who})`);
 
-​
-
   updateStats();
-
 }
-
-​
 
 function newRound(){
-
   round += 1;
-
   setStatus("Waiting");
-
   setMsg("New round ready. Press “Start round”.");
-
   stopTimer();
-
   revealIndex = 0;
-
   buildThumbsUI();
-
   renderCurrent(null, "—");
-
   updateStats();
-
 }
-
-​
 
 function lockoutActive(){ return now() < lockedUntil; }
 
-​
-
 function tryShout(){
-
   if (lockoutActive()){
-
     setMsg(`Locked out for ${Math.ceil((lockedUntil-now())/1000)}s 😅`, "bad");
-
     updateStats();
-
     return;
-
   }
-
   const raw = els.sumInput.value.trim();
-
   if (raw === ""){
-
     setMsg("Type a sum first 🙂", "bad");
-
     return;
-
   }
-
   const guess = Number(raw);
-
   if (!Number.isFinite(guess)){
-
     setMsg("That doesn’t look like a number 😄", "bad");
-
     return;
-
   }
-
-​
 
   if (guess === targetSum){
-
     score += 1;
-
     setStatus("Correct ✅");
-
     setMsg(`Correct! 🎉\nA = ${targetA}, B = ${targetB}\nSum = ${targetSum}\n(+1 point)`, "ok");
-
     updateStats();
-
     // Stop loop on correct (we solved it)
-
     stopTimer();
-
   } else {
-
     lockedUntil = now() + LOCKOUT_MS;
-
     setStatus("Wrong ❌ (loop continues)");
-
     setMsg("Wrong 😬\nLocked out for 10 seconds.\nReveals keep looping — try again after lockout!", "bad");
-
     updateStats();
-
     const id = setInterval(() => {
-
       if (!lockoutActive()) { clearInterval(id); updateStats(); }
-
       else updateStats();
-
     }, 200);
-
   }
-
 }
-
-​
 
 function revealAnswer(){
-
   setStatus("Answer revealed");
-
   setMsg(`Answer:\nA = ${targetA}\nB = ${targetB}\nSum = ${targetSum}`, "ok");
-
 }
 
-​
-
 /* Wire up */
-
 els.startBtn.addEventListener("click", startRound);
-
 els.newBtn.addEventListener("click", newRound);
-
 els.revealBtn.addEventListener("click", revealAnswer);
-
 els.shoutBtn.addEventListener("click", tryShout);
-
 els.sumInput.addEventListener("keydown", (e)=>{ if (e.key === "Enter") tryShout(); });
 
-​
-
 /* Init */
-
 buildThumbsUI();
-
 renderCurrent(null, "—");
-
 updateStats();
-
 </script>
-
 </body>
-
 </html>
