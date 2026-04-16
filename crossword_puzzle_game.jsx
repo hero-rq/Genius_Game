@@ -36,88 +36,68 @@ const GRID_SIZE = 17;
 const MAX_TRIES = 600;
 const SIZE_OPTIONS = [10, 15, 20];
 
-const emptyEntry = () => ({ word: "", clue: "" });
+const emptyEntry = () => ({ word: "", clue: "", example: "" });
 
 const BUILTIN_HINTS = {
   ALGORITHM: {
     clue: "A step-by-step method for solving a problem or completing a task.",
-    usage: "This word often appears in computing, mathematics, and problem-solving contexts.",
   },
   PYTHON: {
     clue: "A popular programming language known for readability and flexibility.",
-    usage: "This word is commonly seen in coding, automation, and data work.",
   },
   NETWORK: {
     clue: "A connected system of devices, people, or points that exchange information.",
-    usage: "This word is used in technology, communication, and social connection contexts.",
   },
   MEMORY: {
     clue: "The ability or place to store and recall information.",
-    usage: "This word appears in both human thinking and computer-system contexts.",
   },
   KERNEL: {
     clue: "The core part of an operating system that manages essential system operations.",
-    usage: "This word is often used in operating systems and low-level computing.",
   },
   VECTOR: {
     clue: "A quantity or representation that has direction, magnitude, or ordered values.",
-    usage: "This word is common in mathematics, graphics, and AI embeddings.",
   },
   MODULE: {
     clue: "A self-contained part of a larger system or program.",
-    usage: "This word often describes reusable software components.",
   },
   BINARY: {
     clue: "A base-2 system that uses only two states, often 0 and 1.",
-    usage: "This word is frequently used in computing and digital representation.",
   },
   CIPHER: {
     clue: "A method or system for encoding information secretly.",
-    usage: "This word belongs to cryptography and secure communication.",
   },
   SCRIPT: {
     clue: "A text file or set of commands used to automate actions.",
-    usage: "This word often appears in programming and automation work.",
   },
   SIGNAL: {
     clue: "A message, indicator, or transmitted pattern carrying information.",
-    usage: "This word is used in communication, monitoring, and electronics.",
   },
   MATRIX: {
     clue: "A rectangular arrangement of values organized into rows and columns.",
-    usage: "This word is common in mathematics, graphics, and machine learning.",
   },
   PACKET: {
     clue: "A formatted unit of data sent across a network.",
-    usage: "This word often appears in networking and communication systems.",
   },
   BUFFER: {
     clue: "A temporary storage area used while data is being processed or moved.",
-    usage: "This word is common in systems, media playback, and memory handling.",
   },
   THREAD: {
     clue: "A sequence of execution inside a running program.",
-    usage: "This word is often used in concurrent and parallel computing.",
   },
   OBJECT: {
     clue: "An instance that contains data and behavior in programming.",
-    usage: "This word is central in object-oriented programming.",
   },
   SCHEMA: {
     clue: "A structured description or blueprint for organizing data.",
-    usage: "This word appears in databases, APIs, and validation systems.",
   },
   ROUTER: {
     clue: "A device or logic unit that directs traffic to the correct destination.",
-    usage: "This word is used in networking and web routing contexts.",
   },
   LATENCY: {
     clue: "The delay before a system responds or data begins to move.",
-    usage: "This word often describes responsiveness in systems and networks.",
   },
   QUORUM: {
     clue: "The minimum required participation needed for a valid decision.",
-    usage: "This word appears in governance, distributed systems, and voting protocols.",
   },
 };
 
@@ -285,32 +265,34 @@ function assignNumbers(grid, placements) {
   return { placements: sorted, numberedGrid };
 }
 
-function maskedWord(word) {
-  if (!word) return "";
-  return word
-    .split("")
-    .map((ch, idx) => {
-      if (idx === 0 || idx === word.length - 1) return ch;
-      return /[AEIOU]/.test(ch) ? "_" : ch;
-    })
-    .join("");
+function maskExampleSentence(example, word) {
+  const cleanExample = (example || "").trim();
+  const cleanWord = normalizeWord(word);
+  if (!cleanExample) return "";
+  if (!cleanWord) return cleanExample;
+
+  const escaped = cleanWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(escaped, "gi");
+  const replaced = cleanExample.replace(regex, "_____ ");
+  return replaced.replace(/\s+/g, " ").trim();
 }
 
 function resolveHint(entry) {
   const word = normalizeWord(entry.word);
   const manualClue = (entry.clue || "").trim();
+  const maskedExample = maskExampleSentence(entry.example, word);
 
   if (BUILTIN_HINTS[word]) {
     return {
       clue: manualClue || BUILTIN_HINTS[word].clue,
-      usage: BUILTIN_HINTS[word].usage,
+      example: maskedExample,
       source: manualClue ? "mixed" : "builtin",
     };
   }
 
   return {
     clue: manualClue,
-    usage: `Study hint: this answer has ${word.length} letters and the visible pattern ${maskedWord(word)}.`,
+    example: maskedExample,
     source: "manual",
   };
 }
@@ -324,7 +306,7 @@ function generateCrossword(rawEntries) {
         id: idx + 1,
         word,
         clue: resolved.clue,
-        usage: resolved.usage,
+        example: resolved.example,
         clueSource: resolved.source,
       };
     })
@@ -448,7 +430,7 @@ export default function InteractiveCrosswordBuilderGame() {
   const [wordCount, setWordCount] = useState("10");
   const [entries, setEntries] = useState(createEntries(10));
   const [puzzle, setPuzzle] = useState(null);
-  const [message, setMessage] = useState("Type your words and short English clues, then let the crossword forge do the rest 😎");
+  const [message, setMessage] = useState("Type your words and short English meanings. Optional example sentences can be added only if you want 😎");
   const [selectedCell, setSelectedCell] = useState(null);
   const [activeDirection, setActiveDirection] = useState("across");
   const [result, setResult] = useState(null);
@@ -489,32 +471,32 @@ export default function InteractiveCrosswordBuilderGame() {
 
   function loadDemo() {
     const demo = [
-      ["ALGORITHM", "A step-by-step procedure for solving a problem"],
-      ["PYTHON", "A popular programming language"],
-      ["NETWORK", "Connected systems that exchange data"],
-      ["MEMORY", "Stored information used later"],
-      ["KERNEL", "The core part of an operating system"],
-      ["VECTOR", "A quantity with magnitude and direction"],
-      ["MODULE", "A self-contained software component"],
-      ["BINARY", "Base-2 representation using 0 and 1"],
-      ["CIPHER", "A method for encrypting information"],
-      ["SCRIPT", "A file containing executable commands"],
-      ["SIGNAL", "A detectable message or indication"],
-      ["MATRIX", "A rectangular array of values"],
-      ["PACKET", "A formatted unit of data sent over a network"],
-      ["BUFFER", "Temporary storage for data"],
-      ["THREAD", "A sequence of executable instructions"],
-      ["OBJECT", "An instance containing data and behavior"],
-      ["SCHEMA", "A structured description of data"],
-      ["ROUTER", "A device or logic that forwards traffic"],
-      ["LATENCY", "Delay before a transfer begins"],
-      ["QUORUM", "Minimum required participation for a decision"],
+      ["ALGORITHM", "A step-by-step procedure for solving a problem", "The _____ selected the fastest route through the graph."],
+      ["PYTHON", "A popular programming language", "She used _____ to automate the data-cleaning task."],
+      ["NETWORK", "Connected systems that exchange data", "The office _____ became slow during the update."],
+      ["MEMORY", "Stored information used later", "Good _____ helps you recall facts during exams."],
+      ["KERNEL", "The core part of an operating system", "The operating system _____ manages essential low-level tasks."],
+      ["VECTOR", "A quantity with magnitude and direction", "In geometry, a _____ can represent movement in space."],
+      ["MODULE", "A self-contained software component", "We replaced one _____ without changing the whole system."],
+      ["BINARY", "Base-2 representation using 0 and 1", "Computers store data in _____ form."],
+      ["CIPHER", "A method for encrypting information", "The secret message was protected by a _____."],
+      ["SCRIPT", "A file containing executable commands", "He ran a _____ to install every dependency."],
+      ["SIGNAL", "A detectable message or indication", "The sensor sent a warning _____ to the controller."],
+      ["MATRIX", "A rectangular array of values", "The numbers were stored in a 3 by 3 _____."],
+      ["PACKET", "A formatted unit of data sent over a network", "Each _____ carried part of the file across the internet."],
+      ["BUFFER", "Temporary storage for data", "The app used a _____ to avoid playback interruptions."],
+      ["THREAD", "A sequence of executable instructions", "A single busy _____ should not freeze the whole app."],
+      ["OBJECT", "An instance containing data and behavior", "In object-oriented design, each _____ can hold its own state."],
+      ["SCHEMA", "A structured description of data", "The database _____ defines each field clearly."],
+      ["ROUTER", "A device or logic that forwards traffic", "The _____ sent the request to the correct destination."],
+      ["LATENCY", "Delay before a transfer begins", "Gamers notice high _____ during online matches."],
+      ["QUORUM", "Minimum required participation for a decision", "The committee could not vote without a _____ present."],
     ];
     const n = Number(wordCount);
-    setEntries(demo.slice(0, n).map(([word, clue]) => ({ word, clue })));
+    setEntries(demo.slice(0, n).map(([word, clue, example]) => ({ word, clue, example })));
     setPuzzle(null);
     setResult(null);
-    setMessage("Demo set loaded. You can now build instantly 🪄");
+    setMessage("Demo set loaded. Build it and see the cleaner meaning-first clue cards 🪄");
   }
 
   function buildPuzzle() {
@@ -537,7 +519,7 @@ export default function InteractiveCrosswordBuilderGame() {
     setPuzzle(null);
     setResult(null);
     setSelectedCell(null);
-    setMessage("Fresh board, fresh clues, fresh victory path ✨");
+    setMessage("Fresh board, fresh meanings, fresh victory path ✨");
   }
 
   function focusCell(row, col) {
@@ -646,7 +628,7 @@ export default function InteractiveCrosswordBuilderGame() {
     setPuzzle({ ...puzzle, userGrid: solved });
     const stats = evaluatePuzzle(puzzle, solved);
     setResult({ ...stats, ...complimentForScore(100), score: 100 });
-    setMessage("Solution revealed. Absorb the pattern and then destroy the next board 🏆");
+    setMessage("Solution revealed. Absorb the word-meaning links and then destroy the next board 🏆");
   }
 
   const acrossWords = useMemo(
@@ -675,7 +657,7 @@ export default function InteractiveCrosswordBuilderGame() {
                     Interactive Crossword Forge
                   </CardTitle>
                   <p className="mt-2 text-sm text-slate-600 md:text-base">
-                    This version focuses on learning meanings naturally: each word comes with a short English clue and an extra study hint ✨
+                    This version keeps the puzzle focused on words and meanings. Example sentences are optional and only shown when the user provides them ✨
                   </p>
                 </div>
                 <Badge className="rounded-full px-4 py-2 text-sm">Puzzle Lab</Badge>
@@ -700,7 +682,7 @@ export default function InteractiveCrosswordBuilderGame() {
                 <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                   <div className="font-medium text-slate-800">How it works</div>
                   <div className="mt-1">
-                    Users type a word and a short English meaning. The puzzle uses that clue directly, then shows a separate extra study hint inside the clue card.
+                    Users type a word and a short English meaning. Example sentences are optional. If an example is provided, the answer word is hidden inside the sentence so the clue stays fair.
                   </div>
                 </div>
               </div>
@@ -724,15 +706,15 @@ export default function InteractiveCrosswordBuilderGame() {
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-2xl border bg-white p-4">
                   <div className="flex items-center gap-2 font-semibold"><Brain className="h-4 w-4" /> Meaning-first</div>
-                  <div className="mt-2 text-sm text-slate-600">The core input is the word plus its short English meaning.</div>
+                  <div className="mt-2 text-sm text-slate-600">The core input is still the word plus its short English meaning.</div>
                 </div>
                 <div className="rounded-2xl border bg-white p-4">
-                  <div className="flex items-center gap-2 font-semibold"><ScanSearch className="h-4 w-4" /> Separate study hint</div>
-                  <div className="mt-2 text-sm text-slate-600">Extra support is shown beneath the clue instead of mixing everything together.</div>
+                  <div className="flex items-center gap-2 font-semibold"><ScanSearch className="h-4 w-4" /> Optional example</div>
+                  <div className="mt-2 text-sm text-slate-600">An example sentence is shown only if the user wants to add one.</div>
                 </div>
                 <div className="rounded-2xl border bg-white p-4">
                   <div className="flex items-center gap-2 font-semibold"><ArrowDown className="h-4 w-4" /> Smooth solving</div>
-                  <div className="mt-2 text-sm text-slate-600">Typing a letter now automatically moves focus to the next puzzle cell.</div>
+                  <div className="mt-2 text-sm text-slate-600">Typing a letter automatically moves focus to the next valid cell.</div>
                 </div>
               </div>
 
@@ -742,7 +724,7 @@ export default function InteractiveCrosswordBuilderGame() {
                     key={idx}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="grid gap-3 rounded-2xl border p-4 md:grid-cols-[160px_1fr]"
+                    className="grid gap-3 rounded-2xl border p-4 md:grid-cols-[150px_1fr_1fr]"
                   >
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -758,12 +740,24 @@ export default function InteractiveCrosswordBuilderGame() {
 
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Short English clue
+                        Short English meaning
                       </div>
                       <Textarea
                         value={entry.clue}
                         onChange={(e) => updateEntry(idx, "clue", e.target.value)}
                         placeholder="e.g. A popular programming language"
+                        className="min-h-[76px] rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Optional example sentence
+                      </div>
+                      <Textarea
+                        value={entry.example}
+                        onChange={(e) => updateEntry(idx, "example", e.target.value)}
+                        placeholder="e.g. She used Python to automate the task"
                         className="min-h-[76px] rounded-xl"
                       />
                     </div>
@@ -910,7 +904,7 @@ export default function InteractiveCrosswordBuilderGame() {
 
             <Card className="rounded-3xl border-0 shadow-xl">
               <CardHeader>
-                <CardTitle className="text-2xl">Clues and study hints</CardTitle>
+                <CardTitle className="text-2xl">Clues</CardTitle>
               </CardHeader>
               <CardContent>
                 {!puzzle ? (
@@ -938,7 +932,9 @@ export default function InteractiveCrosswordBuilderGame() {
                                 {p.clueSource === "manual" ? "manual clue" : p.clueSource === "mixed" ? "manual + smart" : "smart clue"}
                               </Badge>
                             </div>
-                            <div className="mt-2 text-sm text-slate-600">{p.usage}</div>
+                            {p.example ? (
+                              <div className="mt-2 text-sm text-slate-600">Example: {p.example}</div>
+                            ) : null}
                             <div className="mt-2 text-xs text-slate-500">Length: {p.word.length}</div>
                           </div>
                         );
@@ -965,7 +961,9 @@ export default function InteractiveCrosswordBuilderGame() {
                                 {p.clueSource === "manual" ? "manual clue" : p.clueSource === "mixed" ? "manual + smart" : "smart clue"}
                               </Badge>
                             </div>
-                            <div className="mt-2 text-sm text-slate-600">{p.usage}</div>
+                            {p.example ? (
+                              <div className="mt-2 text-sm text-slate-600">Example: {p.example}</div>
+                            ) : null}
                             <div className="mt-2 text-xs text-slate-500">Length: {p.word.length}</div>
                           </div>
                         );
