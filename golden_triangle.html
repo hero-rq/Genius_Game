@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Golden Triangle</title>
+<style>
+  :root{
+    --bg-0:#0b1020;
+    --bg-1:#111733;
+    --bg-2:#1a2142;
+    --panel:#161d3a;
+    --panel-2:#1d2548;
+    --line:#2a3358;
+    --line-2:#3a4475;
+    --ink:#e8ecff;
+    --ink-soft:#c4cae8;
+    --muted:#8b94c2;
+    --gold:#fbbf24;
+    --gold-soft:#fde68a;
+    --amber:#f59e0b;
+    --orange:#fb923c;
+    --blue:#60a5fa;
+    --blue-strong:#3b82f6;
+    --purple:#a78bfa;
+    --tile:#222a52;
+    --tile-stroke:#4a558a;
+    --player-fill:#3b82f6;   /* you = blue */
+    --player-stroke:#1e40af;
+    --ai-fill:#f97316;       /* AI = orange */
+    --ai-stroke:#c2410c;
+    --shadow:0 18px 48px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at top,rgba(251,191,36,.08),transparent 40%),linear-gradient(180deg,#0a0f1f,#0b1020 60%,#080c1b)}
+  .app{max-width:1480px;margin:0 auto;padding:14px}
+  .top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:rgba(22,29,58,.78);border:1px solid var(--line);border-radius:24px;padding:12px 16px;box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+  h1{margin:0;font-size:24px;letter-spacing:-.04em;color:var(--ink)}
+  .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .logo{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:13px;background:linear-gradient(135deg,#fbbf24,#f59e0b);margin-right:10px;font-size:20px;color:#1a1505;box-shadow:0 4px 14px rgba(251,191,36,.35)}
+  .brand{display:flex;align-items:center}
+  .scorebar{display:flex;gap:7px;flex-wrap:wrap}
+  .pill{background:var(--panel-2);border:1px solid var(--line);border-radius:15px;padding:6px 10px;min-width:78px}
+  .pill b{display:block;text-transform:uppercase;font-size:9px;letter-spacing:.16em;color:var(--muted)}
+  .pill span{font-size:18px;font-weight:950;color:var(--ink)}
+  .layout{display:grid;grid-template-columns:minmax(640px,1.6fr) minmax(260px,.5fr);gap:12px;margin-top:12px;align-items:start}
+  .card{background:rgba(22,29,58,.72);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(6px)}
+  .head{padding:10px 14px;background:linear-gradient(90deg,rgba(251,191,36,.12),rgba(22,29,58,0));border-bottom:1px solid var(--line)}
+  .head h2{color:var(--ink)}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn,select{border:1px solid var(--line-2);background:var(--panel-2);border-radius:13px;padding:8px 11px;font-weight:850;cursor:pointer;color:var(--ink);font-size:13px}
+  .btn:hover,select:hover{border-color:var(--blue);background:#222b55}
+  .btn.primary{background:linear-gradient(135deg,#fbbf24,#f59e0b);border-color:#d97706;color:#1a1505}
+  .btn.primary:hover{filter:brightness(1.05)}
+  select option{background:var(--panel-2);color:var(--ink)}
+  .body{padding:10px 12px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:13px;padding:6px 8px}
+  .stat small{display:block;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:900;font-size:9px}
+  .stat strong{font-size:17px;color:var(--ink)}
+  .boardBox{border:1px solid var(--line);background:linear-gradient(135deg,#0e1430,#161d3a);border-radius:22px;padding:6px}
+  .board{width:100%;height:540px;display:block}
+  .tile{cursor:pointer}
+  .tile.disabled{cursor:default}
+  .adjLine{stroke:var(--gold);stroke-width:5;stroke-linecap:round;opacity:.7;pointer-events:none}
+  .focusRing{fill:none;stroke:var(--blue);stroke-width:5;pointer-events:none}
+  .neighborRing{fill:none;stroke:var(--gold);stroke-width:4;stroke-dasharray:9 6;pointer-events:none;opacity:.85}
+  .tokenText{font-size:24px;font-weight:950;pointer-events:none}
+  .cellText{font-size:13px;font-weight:850;fill:#7d87b8;pointer-events:none}
+  .legend{margin-top:8px;border:1px dashed var(--line-2);background:var(--panel-2);border-radius:16px;padding:9px 12px;color:var(--ink-soft);font-size:12px;line-height:1.45}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .chip{background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:4px 7px;font-size:11px;color:var(--ink-soft)}
+  .chip b{color:var(--ink)}
+  .side{display:grid;gap:10px;position:sticky;top:10px}
+  .side h2{font-size:15px;margin:0}
+  .hand{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:240px;overflow-y:auto;padding:2px}
+  .hand::-webkit-scrollbar{width:6px}
+  .hand::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:3px}
+  .piece{border:1px solid var(--line-2);background:var(--panel-2);border-radius:12px;padding:6px 4px;text-align:center;cursor:pointer;transition:all .12s;color:var(--ink)}
+  .piece:hover{border-color:var(--gold);background:#2a335c}
+  .piece.selected{border-color:var(--blue);background:#1e2960;box-shadow:0 0 0 3px rgba(96,165,250,.25)}
+  .piece:disabled{opacity:.45;cursor:not-allowed}
+  .piece small{display:block;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-size:8px;font-weight:900}
+  .piece strong{font-size:18px;line-height:1.1;color:var(--ink)}
+  .status{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:9px 11px;font-size:12px;line-height:1.5;color:var(--ink-soft)}
+  .winner{margin-top:8px;border:1px solid #d97706;background:linear-gradient(135deg,#3a2a0a,#2a1f0a);border-radius:14px;padding:9px 11px;font-size:12px;color:var(--gold-soft)}
+  .winner b{color:var(--gold);font-size:13px}
+  .row{display:flex;justify-content:space-between;background:rgba(255,255,255,.04);border-radius:10px;padding:6px 9px;margin-top:5px;font-weight:850;color:var(--ink)}
+  .note{font-size:11px;color:var(--muted);margin-top:6px}
+  .badge{display:inline-flex;border-radius:999px;background:var(--bg-2);color:var(--ink);padding:4px 8px;font-size:10px;font-weight:900;border:1px solid var(--line)}
+  .badge.map{background:rgba(251,191,36,.12);color:var(--gold-soft);border:1px solid #b45309}
+  .selectLabel{font-size:10px;color:var(--muted);font-weight:900}
+  @media(max-width:1120px){.layout{grid-template-columns:1fr}.side{position:static}.hand{grid-template-columns:repeat(7,1fr);max-height:none}.board{height:500px}}
+  @media(max-width:700px){.app{padding:8px}.stats{grid-template-columns:repeat(2,1fr)}.hand{grid-template-columns:repeat(5,1fr)}.board{height:390px}.tokenText{font-size:18px}.cellText{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><div class="logo">△</div><div><h1>Golden Triangle</h1><div class="sub">Dark mode · side-touching triangles count · deeper AI search</div></div></div>
+    <div class="scorebar">
+      <div class="pill"><b>You</b><span id="topPlayer">—</span></div>
+      <div class="pill"><b>Computer</b><span id="topAi">—</span></div>
+      <div class="pill"><b>Golden</b><span id="topGolden">—</span></div>
+      <div class="pill"><b>Turn</b><span id="topStarter">—</span></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <div class="head"><div class="controls">
+        <button class="btn primary" id="newMap">New random map</button>
+        <button class="btn" id="sameMap">Restart same map</button>
+        <label><span class="selectLabel">AI level</span><br><select id="aiLevel"><option value="strong">Strong</option><option value="stronger">Stronger</option></select></label>
+        <label><span class="selectLabel">Size</span><br><select id="mapSize">
+          <option value="random">Random</option>
+          <option value="15">15 cells (1–7)</option>
+          <option value="21">21 cells (1–10)</option>
+          <option value="25">25 cells (1–12)</option>
+          <option value="29">29 cells (1–14)</option>
+        </select></label>
+        <span class="badge" id="aiBadge">AI: Strong</span><span class="badge map" id="mapBadge">Map</span>
+      </div></div>
+      <div class="body">
+        <div class="stats"><div class="stat"><small>Your tokens</small><strong id="playerLeft">—</strong></div><div class="stat"><small>AI tokens</small><strong id="aiLeft">—</strong></div><div class="stat"><small>Open cells</small><strong id="openLeft">—</strong></div><div class="stat"><small>Turn</small><strong id="turnNow">—</strong></div></div>
+        <div class="boardBox"><svg id="board" class="board" viewBox="0 0 1000 680" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="legend" id="legend">Hover a triangle to see every triangle sharing a side with it. Select a token from your hand on the right, then click an empty triangle to place it.</div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="card"><div class="head"><h2>Your hand</h2></div><div class="body"><div class="hand" id="hand"></div><div class="note" id="selectedNote">Selected: none</div></div></section>
+      <section class="card"><div class="head"><h2>Match status</h2></div><div class="body"><div class="status" id="status">Loading...</div><div id="finalBox"></div></div></section>
+      <section class="card"><div class="head"><h2>Rule</h2></div><div class="body"><div class="note">Board has an odd number of cells. Half tokens go to each player, numbered <b>1 to (N−1)/2</b>. Last empty triangle is the Golden Triangle. Only triangles that <b>touch by a real side/line segment</b> count toward the final score. Corner-dot contact does not count.</div></div></section>
+    </aside>
+  </main>
+</div>
+
+<script>
+const PLAYER='player', AI='ai';
+const SVG_W=1000, SVG_H=680;
+let TRI=70, TH=Math.sqrt(3)/2*TRI;
+let board=[], adj={}, placements={}, hands={player:[],ai:[]}, turn=AI, nextStarter=PLAYER, selected=null, hovered=null, score=null, gameOver=false;
+let centers={}; // cache of cell centers for current layout
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
+function k(q,r){return q+','+r}
+
+// "up" if (q + r) is even (in our encoding).
+function isUp(q,r){return ((q+r)&1)===0}
+
+// Edge-adjacent neighbors (3 per triangle) — used ONLY for map growth so the
+// generator never picks an empty-space corner-only neighbor.
+function edgeNeighbors(q,r){
+  // Real line-touching neighbors only.
+  // Up triangles share their bottom edge with the down triangle below (r+1).
+  // Down triangles share their top edge with the up triangle above (r-1).
+  // The left/right neighbors share the two diagonal sides.
+  if(isUp(q,r)) return [[q-1,r],[q+1,r],[q,r+1]];
+  return [[q-1,r],[q+1,r],[q,r-1]];
+}
+
+// Legacy corner-neighbor offsets kept unused for reference. The actual game now uses edgeNeighbors only, because corner-dot contact does not count.
+const UP_VERTEX_OFFSETS = [
+  [-2,0],[-2,1],[-1,-1],[-1,0],[-1,1],[0,-1],
+  [0,1],[1,-1],[1,0],[1,1],[2,0],[2,1]
+];
+const DOWN_VERTEX_OFFSETS = [
+  [-2,-1],[-2,0],[-1,-1],[-1,0],[-1,1],[0,-1],
+  [0,1],[1,-1],[1,0],[1,1],[2,-1],[2,0]
+];
+function surroundingNeighbors(q,r){
+  const offs = isUp(q,r) ? UP_VERTEX_OFFSETS : DOWN_VERTEX_OFFSETS;
+  return offs.map(([dq,dr])=>[q+dq, r+dr]);
+}
+
+function makeHands(n){
+  const half=Math.floor((n-1)/2); // since n is odd, (n-1)/2 is an integer
+  // n cells, each player places `half` tokens, leaves 1 empty → 2*half+1=n ✓
+  return {player:Array.from({length:half},(_,i)=>i+1),ai:Array.from({length:half},(_,i)=>i+1)};
+}
+
+// Generate a CONNECTED map using only edge-adjacent neighbors.
+// This guarantees every cell visually touches another cell.
+function generateConnectedMap(target){
+  const cells=new Map();
+  const start={q:0,r:0};
+  cells.set(k(start.q,start.r),start);
+  let attempts=0;
+  while(cells.size<target && attempts<target*200){
+    attempts++;
+    // Pick a random existing cell
+    const arr=[...cells.values()];
+    const base=arr[rnd(0,arr.length-1)];
+    // Pick a random EDGE-ADJACENT neighbor (only 3 real neighbors per triangle)
+    const nbrs=edgeNeighbors(base.q,base.r);
+    const [nq,nr]=nbrs[rnd(0,nbrs.length-1)];
+    // Keep map roughly bounded so it stays compact
+    if(Math.abs(nq)>6 || Math.abs(nr)>6) continue;
+    const key=k(nq,nr);
+    if(cells.has(key)) continue;
+    cells.set(key,{q:nq,r:nr});
+  }
+  // IMPORTANT: do NOT normalize q,r. Shifting by an odd amount flips (q+r) parity
+  // which would flip every triangle's up/down flag and silently break adjacency.
+  // The display layout below auto-centers the cluster, so we don't need to normalize.
+  const raw=[...cells.values()].map(c=>({q:c.q,r:c.r,up:isUp(c.q,c.r)}));
+  raw.sort((a,b)=>a.r-b.r||a.q-b.q);
+  return raw.map((c,i)=>({...c,id:i}));
+}
+
+// Compute the geometric center of every cell once per layout.
+function computeCenters(){
+  // For an axially-aligned triangle grid:
+  // Each column shifts x by TRI/2 (half a triangle's base).
+  // Each row shifts y by TH (the triangle height).
+  // Up triangle at (q,r) has its centroid at (q*TRI/2 + TRI/2, r*TH + TH*2/3 of the up triangle origin).
+  // We just need a consistent layout — using simple positions:
+  const raw={};
+  for(const c of board){
+    const x = c.q * (TRI/2) + TRI/2;
+    // For an up triangle, vertices are at top, bottom-left, bottom-right (centroid 1/3 from bottom)
+    // For a down triangle, vertices are at bottom, top-left, top-right
+    // Center of mass of the triangle (placed in row r):
+    const y = c.r * TH + (c.up ? TH*2/3 : TH/3);
+    raw[c.id]={x,y};
+  }
+  // Now center the whole layout inside the SVG viewBox
+  const xs=Object.values(raw).map(p=>p.x), ys=Object.values(raw).map(p=>p.y);
+  // Include the actual triangle footprint, not just centroid spread, so bigger
+  // triangles stay inside the SVG instead of clipping at the edges.
+  const minX=Math.min(...xs) - TRI/2, maxX=Math.max(...xs) + TRI/2;
+  const minY=Math.min(...ys) - TH*2/3, maxY=Math.max(...ys) + TH*2/3;
+  const w=maxX-minX, h=maxY-minY;
+  // Auto-scale: shrink TRI if needed so layout fits in (SVG_W*0.94 × SVG_H*0.90)
+  const availW=SVG_W*0.90, availH=SVG_H*0.86;
+  let scale=1;
+  if(w>availW) scale=Math.min(scale, availW/w);
+  if(h>availH) scale=Math.min(scale, availH/h);
+  // Apply scale and recenter
+  const cx=SVG_W/2, cy=SVG_H/2;
+  const mx=(minX+maxX)/2, my=(minY+maxY)/2;
+  centers={};
+  for(const id in raw){
+    centers[id]={
+      x: cx + (raw[id].x - mx)*scale,
+      y: cy + (raw[id].y - my)*scale
+    };
+  }
+  // Effective scaled triangle size for drawing
+  return scale;
+}
+
+let scaleFactor=1;
+
+function trianglePoints(c){
+  const ctr=centers[c.id];
+  const side = TRI * scaleFactor;
+  const h = (Math.sqrt(3)/2) * side;
+  // Up triangle: apex on top
+  if(c.up){
+    return `${ctr.x},${ctr.y - h*2/3} ${ctr.x - side/2},${ctr.y + h/3} ${ctr.x + side/2},${ctr.y + h/3}`;
+  }
+  // Down triangle: apex on bottom
+  return `${ctr.x},${ctr.y + h*2/3} ${ctr.x - side/2},${ctr.y - h/3} ${ctr.x + side/2},${ctr.y - h/3}`;
+}
+
+// Adjacency: two triangles count as "touching" only when they share a real side/line segment.
+// Corner-dot contact is intentionally ignored because it makes the scoring area too large.
+function buildAdj(){
+  const a={};
+  const byKey=new Map();
+  for(const c of board) byKey.set(k(c.q,c.r),c);
+  for(const c of board){
+    a[c.id]=[];
+    for(const [nq,nr] of edgeNeighbors(c.q,c.r)){
+      const nb=byKey.get(k(nq,nr));
+      if(nb) a[c.id].push(nb.id);
+    }
+  }
+  return a;
+}
+
+function empties(){return board.filter(c=>!placements[c.id]).map(c=>c.id)}
+
+function finalScore(p=placements){
+  const e=board.filter(c=>!p[c.id]).map(c=>c.id);
+  if(e.length!==1) return null;
+  const golden=e[0]; let player=0, ai=0; const contributors=[];
+  for(const id of adj[golden]){
+    const pc=p[id]; if(!pc) continue;
+    contributors.push({id,...pc});
+    if(pc.owner===PLAYER) player+=pc.value; else ai+=pc.value;
+  }
+  return {golden,player,ai,contributors,neighbors:adj[golden]};
+}
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function state(){return {placements:clone(placements),hands:clone(hands),turn}}
+function apply(s,owner,value,cell){
+  const n={placements:clone(s.placements),hands:clone(s.hands),turn:s.turn};
+  n.placements[cell]={owner,value};
+  let removed=false;
+  n.hands[owner]=n.hands[owner].filter(v=>{if(!removed&&v===value){removed=true;return false}return true});
+  n.turn = owner===PLAYER ? AI : PLAYER;
+  return n;
+}
+function evaluate(s){
+  const e=board.filter(c=>!s.placements[c.id]).map(c=>c.id);
+  if(e.length===1){
+    const fs=finalScore(s.placements);
+    return (fs.ai - fs.player) * 2000;
+  }
+  // For each empty cell, estimate (ai_neighbor_sum - player_neighbor_sum) if it
+  // became the Golden Triangle, then weight by likelihood of being the LAST empty.
+  // A cell with more still-empty neighbors is more likely to remain empty longest.
+  let total=0;
+  const aiVals=[...s.hands.ai].sort((a,b)=>b-a);
+  const plVals=[...s.hands.player].sort((a,b)=>b-a);
+  const aiMax=aiVals[0]||0, plMax=plVals[0]||0;
+  const aiAvg=aiVals.length?aiVals.reduce((x,y)=>x+y,0)/aiVals.length:0;
+  const plAvg=plVals.length?plVals.reduce((x,y)=>x+y,0)/plVals.length:0;
+  for(const x of e){
+    let av=0, pv=0, openN=0;
+    for(const n of adj[x]){
+      const pc=s.placements[n];
+      if(!pc){ openN++; continue; }
+      if(pc.owner===AI) av+=pc.value; else pv+=pc.value;
+    }
+    // Likelihood weight: cells with more open neighbors are more likely to be last
+    const w = 1 + openN*0.4;
+    // Expected value of unresolved neighbor slots assuming average-card placements
+    const expected = openN * (aiAvg - plAvg) * 0.15;
+    total += ((av - pv) + expected) * w;
+  }
+  // Token hoarding bonus: keeping high cards late is valuable
+  total += (aiMax - plMax) * 0.8;
+  // Tempo: slight bonus for having more tokens remaining
+  total += (s.hands.ai.length - s.hands.player.length) * 0.3;
+  return total;
+}
+function candCells(s,level){
+  const e=board.filter(c=>!s.placements[c.id]).map(c=>c.id);
+  // Rank by: (filled-neighbor-count * 5) + (degree * 1.5) + small randomness for variety
+  return e.sort((a,b)=>{
+    const ba=adj[b].filter(n=>s.placements[n]).length*5 + adj[b].length*1.5;
+    const aa=adj[a].filter(n=>s.placements[n]).length*5 + adj[a].length*1.5;
+    return ba-aa;
+  }).slice(0, level==='stronger' ? 22 : 14);
+}
+function candVals(s,owner,max,level){
+  const v=[...s.hands[owner]].sort((a,b)=>max?b-a:a-b);
+  if(level==='stronger') return v;
+  // Strong: sample high + low + middle so AI can defend AND attack
+  if(v.length<=8) return v;
+  return [...v.slice(0,5), v[Math.floor(v.length/2)], ...v.slice(-2)];
+}
+function minimax(s,d,alpha,beta,max,level){
+  const e=board.filter(c=>!s.placements[c.id]).map(c=>c.id);
+  if(d===0||e.length===1) return {score:evaluate(s),move:null};
+  const owner=max?AI:PLAYER;
+  const vals=candVals(s,owner,max,level);
+  const cells=candCells(s,level);
+  let bestMove=null;
+  if(max){
+    let best=-Infinity;
+    for(const v of vals){
+      for(const c of cells){
+        const r=minimax(apply(s,owner,v,c),d-1,alpha,beta,false,level);
+        if(r.score>best){best=r.score;bestMove={value:v,cell:c}}
+        alpha=Math.max(alpha,best);
+        if(beta<=alpha) break;
+      }
+      if(beta<=alpha) break;
+    }
+    return {score:best,move:bestMove};
+  }
+  let best=Infinity;
+  for(const v of vals){
+    for(const c of cells){
+      const r=minimax(apply(s,owner,v,c),d-1,alpha,beta,true,level);
+      if(r.score<best){best=r.score;bestMove={value:v,cell:c}}
+      beta=Math.min(beta,best);
+      if(beta<=alpha) break;
+    }
+    if(beta<=alpha) break;
+  }
+  return {score:best,move:bestMove};
+}
+function aiMove(){
+  const level=$('aiLevel').value;
+  const s=state();
+  const left=s.hands.ai.length;
+  // Even the first move uses minimax now (the old random opening was a weakness)
+  // Search depth scales with how few tokens remain.
+  let depth;
+  if(level==='stronger'){
+    depth = left<=3 ? 7 : left<=5 ? 6 : left<=8 ? 5 : left<=11 ? 4 : 3;
+  } else {
+    depth = left<=3 ? 5 : left<=5 ? 4 : left<=9 ? 3 : 2;
+  }
+  const r=minimax(s,depth,-Infinity,Infinity,true,level);
+  if(r.move) return r.move;
+  // Fallback (should never trigger): heuristic best
+  const cells=candCells(s,level);
+  const vals=[...hands.ai].sort((a,b)=>b-a);
+  return {cell:cells[0], value:vals[0]};
+}
+
+function move(owner,value,cell){
+  placements[cell]={owner,value};
+  let removed=false;
+  hands[owner]=hands[owner].filter(v=>{if(!removed&&v===value){removed=true;return false}return true});
+  turn = owner===PLAYER ? AI : PLAYER;
+  selected=null;
+  hovered=null;
+  score=finalScore();
+  gameOver=!!score;
+  render();
+  if(!gameOver && turn===AI){
+    setStatus('Computer is thinking...');
+    setTimeout(()=>{
+      const m=aiMove();
+      move(AI,m.value,m.cell);
+      if(!gameOver) setStatus(`Computer played ${m.value}. Your move.`);
+    }, 380);
+  }
+}
+
+function setStatus(t){$('status').textContent=t}
+
+function newGame(newMap=true){
+  if(newMap||!board.length){
+    const sizeSel=$('mapSize').value;
+    let target;
+    if(sizeSel==='random'){
+      const COUNTS=[15,17,19,21,23,25,27,29];
+      target=COUNTS[rnd(0,COUNTS.length-1)];
+    } else {
+      target=parseInt(sizeSel,10);
+    }
+    board=generateConnectedMap(target);
+    // Adjust triangle base size per cell count so it fits the smaller board
+    // Bigger visual triangles: about 1.25–1.35× the previous size.
+    // The SVG auto-centering/scaling still keeps large maps inside the board.
+    TRI = target>=27 ? 80 : target>=21 ? 90 : target>=17 ? 100 : 110;
+    TH = Math.sqrt(3)/2*TRI;
+    adj=buildAdj();
+    scaleFactor=computeCenters();
+  } else {
+    scaleFactor=computeCenters();
+  }
+  placements={};
+  hands=makeHands(board.length);
+  selected=null;
+  hovered=null;
+  score=null;
+  gameOver=false;
+  turn=nextStarter;
+  nextStarter = nextStarter===PLAYER ? AI : PLAYER;
+  render();
+  setStatus(turn===AI?'Computer starts this round...':'You start. Select a token, then click a triangle.');
+  if(turn===AI){
+    setTimeout(()=>{const m=aiMove(); move(AI,m.value,m.cell);}, 480);
+  }
+}
+
+function render(){renderTop();renderHand();renderBoard();renderLegend();renderFinal();}
+
+function renderTop(){
+  $('aiBadge').textContent='AI: '+($('aiLevel').value==='stronger'?'Stronger':'Strong');
+  const half=Math.floor((board.length-1)/2);
+  $('mapBadge').textContent=`Map: ${board.length} cells · tokens 1–${half}`;
+  $('playerLeft').textContent=hands.player.length;
+  $('aiLeft').textContent=hands.ai.length;
+  $('openLeft').textContent=empties().length;
+  $('turnNow').textContent = gameOver?'Done':turn===PLAYER?'You':'AI';
+  $('topPlayer').textContent = score?score.player:'—';
+  $('topAi').textContent = score?score.ai:'—';
+  $('topGolden').textContent = score?score.golden+1:'—';
+  $('topStarter').textContent = gameOver?'Done':turn===PLAYER?'You':'AI';
+}
+
+function renderHand(){
+  const h=$('hand'); h.innerHTML='';
+  // Sort so the same token always renders in the same position
+  const sortedHand=[...hands.player].sort((a,b)=>a-b);
+  for(const v of sortedHand){
+    const b=document.createElement('button');
+    b.className='piece'+(selected===v?' selected':'');
+    b.disabled=turn!==PLAYER||gameOver;
+    b.innerHTML=`<small>Token</small><strong>${v}</strong>`;
+    b.onclick=()=>{
+      selected=v;
+      setStatus(`Token ${v} selected. Click an empty triangle.`);
+      render();
+    };
+    h.appendChild(b);
+  }
+  $('selectedNote').textContent='Selected: '+(selected==null?'none':selected);
+}
+
+/*
+  CRITICAL FIX for click bug:
+  We render the board ONCE per state change (not on every mouseenter).
+  Hover state is applied via CSS-only updates to existing elements,
+  so the DOM nodes stay alive between mousedown and click events.
+*/
+function renderBoard(){
+  const svg=$('board');
+  svg.innerHTML='';
+  const active = (gameOver && score) ? score.golden : hovered;
+
+  // Draw adjacency lines first (under the tiles) so we don't intercept clicks
+  if(active!=null){
+    for(const id of adj[active]){
+      const a=centers[active], b=centers[id];
+      if(!a||!b) continue;
+      const l=document.createElementNS(NS,'line');
+      l.setAttribute('x1',a.x); l.setAttribute('y1',a.y);
+      l.setAttribute('x2',b.x); l.setAttribute('y2',b.y);
+      l.setAttribute('class','adjLine');
+      svg.appendChild(l);
+    }
+  }
+
+  for(const c of board){
+    const pc=placements[c.id];
+    const isGold = gameOver && score && score.golden===c.id;
+    const isFocus = active===c.id;
+    const isN = active!=null && adj[active].includes(c.id);
+    const dim = active!=null && !isFocus && !isN;
+
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('class','tile'+((turn!==PLAYER||gameOver||pc)?' disabled':''));
+    g.setAttribute('opacity', dim?0.42:1);
+
+    // hover updates ONLY adjacency overlay — does NOT re-render tiles,
+    // so click events on this tile continue to fire normally.
+    g.addEventListener('mouseenter', ()=>{
+      if(hovered===c.id) return;
+      hovered=c.id;
+      updateHoverOverlay();
+      renderLegend();
+    });
+    g.addEventListener('mouseleave', ()=>{
+      if(hovered!==c.id) return;
+      hovered=null;
+      updateHoverOverlay();
+      renderLegend();
+    });
+    g.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(turn!==PLAYER||gameOver) { setStatus("It's not your turn."); return; }
+      if(pc){ setStatus('That triangle is already taken.'); return; }
+      if(selected==null){ setStatus('Select a token from your hand first.'); return; }
+      move(PLAYER, selected, c.id);
+    });
+
+    const p=document.createElementNS(NS,'polygon');
+    p.setAttribute('points', trianglePoints(c));
+    // Dark-mode palette: empty tiles are dim navy; player=blue, AI=orange, golden=amber
+    let fill='#222a52', stroke='#4a558a', sw=2.4;
+    if(isGold){ fill='#fbbf24'; stroke='#fde68a'; sw=4.5; }
+    else if(pc){ fill=pc.owner===PLAYER?'#3b82f6':'#f97316'; stroke=pc.owner===PLAYER?'#93c5fd':'#fed7aa'; sw=2.8; }
+    else if(isFocus){ fill='#1e2960'; stroke='#60a5fa'; sw=4; }
+    else if(isN){ fill='#2a2a45'; stroke='#fbbf24'; sw=3.4; }
+    p.setAttribute('fill',fill);
+    p.setAttribute('stroke',stroke);
+    p.setAttribute('stroke-width',sw);
+    g.appendChild(p);
+
+    const cp=centers[c.id];
+    if(isFocus||isN){
+      const ring=document.createElementNS(NS,'circle');
+      ring.setAttribute('cx',cp.x); ring.setAttribute('cy',cp.y);
+      ring.setAttribute('r', (TRI*scaleFactor)*(isFocus?0.42:0.32));
+      ring.setAttribute('class', isFocus?'focusRing':'neighborRing');
+      g.appendChild(ring);
+    }
+
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',cp.x); t.setAttribute('y',cp.y+6);
+    t.setAttribute('text-anchor','middle');
+    if(pc){
+      t.setAttribute('class','tokenText');
+      // White on blue/orange both have plenty of contrast
+      t.setAttribute('fill', 'white');
+      t.textContent=pc.value;
+    } else if(isGold){
+      t.setAttribute('class','tokenText');
+      t.setAttribute('fill','#451a03');
+      t.textContent='△';
+    } else {
+      t.setAttribute('class','cellText');
+      t.textContent=c.id+1;
+    }
+    g.appendChild(t);
+
+    if(isGold){
+      const gg=document.createElementNS(NS,'text');
+      gg.setAttribute('x',cp.x); gg.setAttribute('y',cp.y-16);
+      gg.setAttribute('text-anchor','middle');
+      gg.setAttribute('font-size','10');
+      gg.setAttribute('font-weight','950');
+      gg.setAttribute('fill','#451a03');
+      gg.textContent='GOLDEN';
+      g.appendChild(gg);
+    }
+    svg.appendChild(g);
+  }
+}
+
+/* Lightweight hover update — recolors strokes and toggles adjacency lines
+   WITHOUT recreating any element, so click events stay attached and fire. */
+function updateHoverOverlay(){
+  const svg=$('board');
+  // Remove old adjacency lines and rings, then redraw
+  [...svg.querySelectorAll('.adjLine')].forEach(n=>n.remove());
+  [...svg.querySelectorAll('.focusRing,.neighborRing')].forEach(n=>n.remove());
+
+  // Reset all tile groups' opacity and re-style each polygon based on current state
+  const tiles=svg.querySelectorAll('g.tile');
+  tiles.forEach((g,idx)=>{
+    const c=board[idx];
+    const pc=placements[c.id];
+    const isGold=gameOver&&score&&score.golden===c.id;
+    const active=(gameOver&&score)?score.golden:hovered;
+    const isFocus=active===c.id;
+    const isN=active!=null&&adj[active].includes(c.id);
+    const dim=active!=null&&!isFocus&&!isN;
+    g.setAttribute('opacity', dim?0.42:1);
+    const poly=g.querySelector('polygon');
+    let fill='#222a52', stroke='#4a558a', sw=2.4;
+    if(isGold){ fill='#fbbf24'; stroke='#fde68a'; sw=4.5; }
+    else if(pc){ fill=pc.owner===PLAYER?'#3b82f6':'#f97316'; stroke=pc.owner===PLAYER?'#93c5fd':'#fed7aa'; sw=2.8; }
+    else if(isFocus){ fill='#1e2960'; stroke='#60a5fa'; sw=4; }
+    else if(isN){ fill='#2a2a45'; stroke='#fbbf24'; sw=3.4; }
+    poly.setAttribute('fill',fill);
+    poly.setAttribute('stroke',stroke);
+    poly.setAttribute('stroke-width',sw);
+    if(isFocus||isN){
+      const cp=centers[c.id];
+      const ring=document.createElementNS(NS,'circle');
+      ring.setAttribute('cx',cp.x); ring.setAttribute('cy',cp.y);
+      ring.setAttribute('r', (TRI*scaleFactor)*(isFocus?0.42:0.32));
+      ring.setAttribute('class', isFocus?'focusRing':'neighborRing');
+      g.appendChild(ring);
+    }
+  });
+
+  // Redraw adjacency lines for current active
+  const active=(gameOver&&score)?score.golden:hovered;
+  if(active!=null){
+    for(const id of adj[active]){
+      const a=centers[active], b=centers[id];
+      if(!a||!b) continue;
+      const l=document.createElementNS(NS,'line');
+      l.setAttribute('x1',a.x); l.setAttribute('y1',a.y);
+      l.setAttribute('x2',b.x); l.setAttribute('y2',b.y);
+      l.setAttribute('class','adjLine');
+      // Insert under tiles so it doesn't block clicks
+      svg.insertBefore(l, svg.firstChild);
+    }
+  }
+}
+
+function renderLegend(){
+  const active=(gameOver&&score)?score.golden:hovered;
+  if(active==null){
+    $('legend').innerHTML='Hover a triangle to see every triangle sharing a side with it. Select a token from your hand on the right, then click an empty triangle to place it.';
+    return;
+  }
+  const chips=adj[active].map(id=>{
+    const pc=placements[id];
+    return `<span class="chip"><b>${id+1}</b>${pc?` → ${pc.owner===PLAYER?'You':'AI'} ${pc.value}`:' → empty'}</span>`;
+  }).join('');
+  $('legend').innerHTML=`<b>${gameOver?'Golden triangle':'Triangle'} ${active+1} shares a side with:</b><div class="chips">${chips||'<span class="chip">no neighbors</span>'}</div>`;
+}
+
+function renderFinal(){
+  const box=$('finalBox');
+  if(!gameOver||!score){box.innerHTML='';return}
+  const res = score.player>score.ai ? 'You win ✨' : score.player<score.ai ? 'Computer wins 🤖' : 'Draw ⚖️';
+  box.innerHTML=`<div class="winner"><b>${res}</b><div class="row"><span>You</span><span>${score.player}</span></div><div class="row"><span>Computer</span><span>${score.ai}</span></div><div class="row"><span>Golden cell</span><span>${score.golden+1}</span></div><div class="note">Only triangles sharing a side/line segment with the final empty cell counted toward the score.</div></div>`;
+  setStatus(res);
+}
+
+$('newMap').onclick=()=>newGame(true);
+$('sameMap').onclick=()=>newGame(false);
+$('aiLevel').onchange=render;
+$('mapSize').onchange=()=>newGame(true);
+
+newGame(true);
+</script>
+</body>
+</html>
