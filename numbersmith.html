@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numbersmith</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spline+Sans+Mono:wght@400;500;600&family=Newsreader:ital,opsz@0,6..72;1,6..72&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1116;
+    --bg-2:#141923;
+    --panel:#171d28;
+    --panel-2:#1d2530;
+    --line:#2a3340;
+    --ink:#e8ecf2;
+    --ink-soft:#9aa6b6;
+    --ink-faint:#64707f;
+    --ember:#e8a04b;     /* warm forge accent */
+    --ember-soft:#c8853a;
+    --steel:#7fb0c9;     /* cool steel accent */
+    --glow:rgba(232,160,75,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1200px 600px at 78% -10%, rgba(232,160,75,.07), transparent 60%),
+      radial-gradient(900px 500px at 8% 110%, rgba(127,176,201,.06), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Newsreader", Georgia, serif;
+    min-height:100vh;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    padding:clamp(20px,5vw,64px) 18px 80px;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  .brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .brand h1{
+    font-family:"Fraunces",serif;
+    font-weight:500;
+    font-size:clamp(34px,7vw,56px);
+    letter-spacing:-.02em;
+    line-height:1;
+    background:linear-gradient(180deg,#fff,#cfd8e2 70%,#9aa6b6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .spark{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:11px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--ember);
+    border:1px solid rgba(232,160,75,.35);
+    padding:5px 10px;border-radius:999px;
+    white-space:nowrap;
+  }
+  .tagline{
+    color:var(--ink-soft);
+    font-size:clamp(15px,2.4vw,18px);
+    font-style:italic;
+    max-width:54ch;
+    margin-bottom:34px;
+  }
+  .tagline b{color:var(--ember);font-style:normal;font-weight:500}
+
+  /* ---------- the forge card ---------- */
+  .forge{
+    position:relative;
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:clamp(22px,4vw,38px);
+    box-shadow:0 30px 70px -40px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.03);
+    overflow:hidden;
+  }
+  .forge::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(500px 200px at 80% -30%,var(--glow),transparent 70%);
+    pointer-events:none;
+  }
+  .forge-label{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--ink-faint);margin-bottom:22px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .forge-label::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent)}
+
+  /* the recipe sentence */
+  .recipe{
+    font-family:"Fraunces",serif;
+    font-size:clamp(19px,3.6vw,26px);
+    line-height:1.55;
+    color:var(--ink-soft);
+    margin-bottom:30px;
+  }
+  .recipe .pill{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:2.4em;height:1.7em;padding:0 .35em;
+    margin:0 .12em;
+    transform:translateY(.18em);
+    font-family:"Spline Sans Mono",monospace;
+    font-size:.82em;font-weight:600;
+    color:var(--ink);
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:9px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .recipe .pill.ember{color:var(--ember);border-color:rgba(232,160,75,.4);background:rgba(232,160,75,.07)}
+  .recipe .pill.steel{color:var(--steel);border-color:rgba(127,176,201,.4);background:rgba(127,176,201,.07)}
+
+  /* control grid */
+  .controls{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+    margin-bottom:28px;
+  }
+  @media(min-width:560px){.controls{grid-template-columns:repeat(4,1fr)}}
+  .ctrl{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:13px 14px;
+    transition:border-color .2s,transform .2s;
+  }
+  .ctrl:focus-within{border-color:var(--ember-soft);transform:translateY(-2px)}
+  .ctrl label{
+    display:block;
+    font-family:"Spline Sans Mono",monospace;
+    font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-faint);margin-bottom:7px;
+  }
+  .ctrl input{
+    width:100%;border:none;background:transparent;outline:none;
+    color:var(--ink);
+    font-family:"Spline Sans Mono",monospace;
+    font-size:24px;font-weight:600;
+  }
+  .ctrl.opt{opacity:.85}
+  .ctrl.opt label span{color:var(--steel);text-transform:none;letter-spacing:0;font-size:9px;margin-left:4px}
+
+  /* workspace */
+  .ws-label{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink-faint);margin-bottom:10px;display:block;
+  }
+  .ws{
+    width:100%;min-height:120px;resize:vertical;
+    background:var(--bg);
+    border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;
+    color:var(--ink);
+    font-family:"Spline Sans Mono",monospace;
+    font-size:16px;line-height:1.9;
+    outline:none;transition:border-color .2s;
+  }
+  .ws:focus{border-color:var(--ember-soft)}
+  .ws::placeholder{color:var(--ink-faint)}
+
+  /* counter readout */
+  .readout{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:14px;flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .count{
+    font-family:"Spline Sans Mono",monospace;font-size:13px;color:var(--ink-soft);
+  }
+  .count b{color:var(--ember);font-size:17px}
+  .count.ok b{color:#7ed99a}
+  .count.over b{color:#e8736b}
+
+  .actions{display:flex;gap:12px;flex-wrap:wrap}
+  button{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    cursor:pointer;border-radius:11px;
+    padding:13px 20px;transition:transform .15s,box-shadow .25s,background .2s;
+  }
+  .btn-forge{
+    border:none;color:#1a1206;
+    background:linear-gradient(180deg,#f1b262,var(--ember-soft));
+    box-shadow:0 12px 30px -12px rgba(232,160,75,.6);font-weight:600;
+  }
+  .btn-forge:hover{transform:translateY(-2px);box-shadow:0 16px 36px -12px rgba(232,160,75,.75)}
+  .btn-forge:active{transform:translateY(0)}
+  .btn-ghost{
+    background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+  }
+  .btn-ghost:hover{border-color:var(--ink-faint);color:var(--ink)}
+
+  /* feedback popup */
+  .cheer{
+    margin-top:18px;
+    border:1px solid rgba(232,160,75,.32);
+    background:linear-gradient(180deg,rgba(232,160,75,.09),rgba(232,160,75,.02));
+    border-radius:14px;
+    padding:18px 20px;
+    font-family:"Newsreader",serif;
+    font-size:17px;color:var(--ink);
+    display:none;
+    animation:rise .5s cubic-bezier(.2,.8,.2,1);
+  }
+  .cheer.show{display:block}
+  .cheer .h{
+    font-family:"Fraunces",serif;font-size:20px;color:var(--ember);
+    display:block;margin-bottom:4px;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* ---------- rules ---------- */
+  .rules{
+    margin-top:54px;
+    border-top:1px solid var(--line);
+    padding-top:34px;
+  }
+  .rules h2{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+    color:var(--ink-faint);margin-bottom:22px;
+  }
+  .rule{
+    display:flex;gap:18px;margin-bottom:18px;align-items:flex-start;
+  }
+  .rule .n{
+    font-family:"Fraunces",serif;font-size:26px;color:var(--ember-soft);
+    line-height:1;min-width:26px;
+  }
+  .rule p{color:var(--ink-soft);font-size:16.5px;line-height:1.55}
+  .rule p b{color:var(--ink);font-weight:500}
+  .footnote{
+    margin-top:26px;font-style:italic;color:var(--ink-faint);font-size:14px;
+    line-height:1.6;
+  }
+  .footnote span{color:var(--ember-soft);font-style:normal}
+
+  /* confetti overlay */
+  #confetti{
+    position:fixed;inset:0;width:100%;height:100%;
+    pointer-events:none;z-index:50;
+  }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <h1>Numbersmith</h1>
+      <span class="spark">Forge · Repeat · Reach</span>
+    </div>
+    <p class="tagline">A descendant of the old <b>Four 4s</b> puzzle — but bigger, looser, wilder. Pick a digit, ration it out, and hammer it into the number you're chasing.</p>
+  </header>
+
+  <section class="forge">
+    <div class="forge-label">Today's Commission</div>
+
+    <p class="recipe">
+      Reach <span class="pill ember" id="r-target">42</span>
+      using the digit <span class="pill steel" id="r-digit">3</span>
+      exactly <span class="pill" id="r-count">6</span> times<span id="r-varies-text">, in <span class="pill" id="r-varies">2</span> different ways</span>.
+    </p>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label>Digit</label>
+        <input id="digit" type="number" value="3" min="0" max="9" inputmode="numeric">
+      </div>
+      <div class="ctrl">
+        <label>Uses</label>
+        <input id="count" type="number" value="6" min="1" max="30" inputmode="numeric">
+      </div>
+      <div class="ctrl">
+        <label>Target</label>
+        <input id="target" type="number" value="42" inputmode="numeric">
+      </div>
+      <div class="ctrl opt">
+        <label>Varies <span>· optional</span></label>
+        <input id="varies" type="number" value="2" min="0" max="20" inputmode="numeric">
+      </div>
+    </div>
+
+    <label class="ws-label" for="work">Your Workings</label>
+    <textarea id="work" class="ws" spellcheck="false"
+      placeholder=" Any mathematical operation is allowed "></textarea>
+
+    <div class="readout">
+      <span class="count" id="count-read">digit used <b>0</b> / 6</span>
+      <div class="actions">
+        <button class="btn-ghost" id="newBtn">New Commission</button>
+        <button class="btn-forge" id="cheerBtn">Cheers 🍷</button>
+      </div>
+    </div>
+
+    <div class="cheer" id="cheer">
+      <span class="h" id="cheer-h">Beautifully forged.</span>
+      <span id="cheer-b">That's a clean piece of work. The metal held.</span>
+    </div>
+  </section>
+
+  <section class="rules">
+    <h2>The Four Rules</h2>
+    <div class="rule"><span class="n">1</span><p>You are given a <b>base digit</b>, a fixed <b>count</b> of how many times it must be used, and a <b>target number</b> to reach.</p></div>
+    <div class="rule"><span class="n">2</span><p>You must build a formula that equals the target using the base digit <b>exactly that many times</b> — no more, no less.</p></div>
+    <div class="rule"><span class="n">3</span><p><b>Any</b> mathematical operation is allowed — addition, subtraction, multiplication, division, roots, factorials, exponents, derivatives, concatenation, and so on.</p></div>
+    <div class="rule"><span class="n">4</span><p>Optionally, a <b>"varies"</b> value is given — meaning you must find that many <b>distinct</b> formulas for the same target.</p></div>
+    <p class="footnote"><span>On counting:</span> the counter below your workings tallies how many times your chosen digit appears as a literal. Operators, parentheses, and symbols like √ or ! don't cost a digit. It's a guide, not a judge — you and your evaluator decide what truly counts.</p>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const digit=$('digit'), count=$('count'), target=$('target'), varies=$('varies'), work=$('work');
+
+  function syncRecipe(){
+    $('r-target').textContent = target.value || '—';
+    $('r-digit').textContent  = digit.value  || '—';
+    $('r-count').textContent  = count.value  || '—';
+    const v = parseInt(varies.value,10);
+    if(v && v>1){
+      $('r-varies-text').style.display='';
+      $('r-varies').textContent=v;
+    } else {
+      $('r-varies-text').style.display='none';
+    }
+    syncCount();
+  }
+
+  function syncCount(){
+    const d = digit.value.trim();
+    const need = parseInt(count.value,10)||0;
+    let used = 0;
+    if(d!=='' && /^[0-9]$/.test(d)){
+      // count literal occurrences of the digit in the workings
+      const matches = work.value.match(new RegExp(d,'g'));
+      used = matches ? matches.length : 0;
+    }
+    const read = $('count-read');
+    read.innerHTML = `digit used <b>${used}</b> / ${need}`;
+    read.classList.remove('ok','over');
+    if(used===need && need>0) read.classList.add('ok');
+    else if(used>need) read.classList.add('over');
+  }
+
+  const cheers = [
+    ["Beautifully forged.","That's a clean piece of work — the metal held."],
+    ["Struck true.","Elegant. Every digit pulling its weight."],
+    ["Master craft.","No waste, no excess. Exactly the count, exactly the mark."],
+    ["The anvil sings.","A solution worth keeping. Well done."],
+    ["Sharp as a new blade.","You bent the numbers and they obeyed."],
+    ["Quenched and ready.","That one cooled into something solid. Nicely done."],
+    ["A smith's smith.","Tidy, inventive, and right on target."],
+  ];
+
+  $('cheerBtn').addEventListener('click', ()=>{
+    const [h,b] = cheers[Math.floor(Math.random()*cheers.length)];
+    $('cheer-h').textContent=h;
+    $('cheer-b').textContent=b;
+    const c=$('cheer');
+    c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
+    c.scrollIntoView({behavior:'smooth',block:'nearest'});
+    burstConfetti();
+  });
+
+  /* ---------- confetti ---------- */
+  const cv = $('confetti');
+  const cx = cv.getContext('2d');
+  let parts = [], raf = null;
+  function resize(){ cv.width=innerWidth; cv.height=innerHeight; }
+  addEventListener('resize', resize); resize();
+
+  const palette = ['#e8a04b','#f1b262','#7fb0c9','#7ed99a','#ffffff','#c8853a'];
+
+  function burstConfetti(){
+    const cxBtn = $('cheerBtn').getBoundingClientRect();
+    const ox = cxBtn.left + cxBtn.width/2;
+    const oy = cxBtn.top + cxBtn.height/2;
+    for(let i=0;i<140;i++){
+      const ang = Math.random()*Math.PI*2;
+      const sp  = 4 + Math.random()*11;
+      parts.push({
+        x:ox, y:oy,
+        vx:Math.cos(ang)*sp,
+        vy:Math.sin(ang)*sp - 5,
+        g:0.18 + Math.random()*0.12,
+        size:5 + Math.random()*7,
+        rot:Math.random()*Math.PI,
+        vr:(Math.random()-0.5)*0.35,
+        life:1,
+        decay:0.008 + Math.random()*0.012,
+        color:palette[(Math.random()*palette.length)|0],
+        shape:Math.random()<0.5?'rect':'circ'
+      });
+    }
+    if(!raf) raf = requestAnimationFrame(tick);
+  }
+
+  function tick(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    parts = parts.filter(p=>p.life>0);
+    for(const p of parts){
+      p.vy += p.g;
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.rot+= p.vr;
+      p.life -= p.decay;
+      cx.save();
+      cx.globalAlpha = Math.max(0,p.life);
+      cx.translate(p.x,p.y);
+      cx.rotate(p.rot);
+      cx.fillStyle = p.color;
+      if(p.shape==='rect'){
+        cx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+      }else{
+        cx.beginPath();cx.arc(0,0,p.size/2,0,Math.PI*2);cx.fill();
+      }
+      cx.restore();
+    }
+    if(parts.length){ raf = requestAnimationFrame(tick); }
+    else { cx.clearRect(0,0,cv.width,cv.height); raf=null; }
+  }
+
+  // random commission generator
+  function rollCommission(){
+    digit.value  = Math.floor(Math.random()*8)+2;          // 2–9 (more playable)
+    count.value  = Math.floor(Math.random()*5)+4;          // 4–8
+    target.value = Math.floor(Math.random()*99)+1;         // 1–99
+    varies.value = Math.random()<0.5 ? 1 : Math.floor(Math.random()*3)+2; // 1, or 2–4
+    work.value='';
+    $('cheer').classList.remove('show');
+    syncRecipe();
+  }
+  $('newBtn').addEventListener('click', rollCommission);
+
+  [digit,count,target,varies].forEach(el=>el.addEventListener('input',syncRecipe));
+  work.addEventListener('input',syncCount);
+
+  // keyboard shortcut: press "C" to fire Cheers (unless typing in a field)
+  addEventListener('keydown', e=>{
+    if(e.key!=='c' && e.key!=='C') return;
+    if(e.metaKey||e.ctrlKey||e.altKey) return;          // leave copy/shortcuts alone
+    const t=document.activeElement;
+    if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA')) return; // don't fire while typing
+    e.preventDefault();
+    $('cheerBtn').click();
+  });
+
+  rollCommission();   // start every session with a fresh random commission
+})();
+</script>
+</body>
+</html>
